@@ -2,7 +2,9 @@
 // Proxy transparente a la API de Strava. Refresca tokens automáticamente.
 
 exports.handler = async (event) => {
-  const path = event.path.replace('/.netlify/functions/strava-proxy', '');
+  const path = event.path
+    .replace('/.netlify/functions/strava-proxy', '')
+    .replace('/api/strava', '');
   const stravaUrl = `https://www.strava.com/api/v3${path}${event.rawQuery ? '?' + event.rawQuery : ''}`;
 
   let accessToken = event.headers['x-strava-token'];
