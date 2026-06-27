@@ -1725,18 +1725,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Configuración del Client ID de Strava
-// Para el deploy: agregar STRAVA_CLIENT_ID en las variables de entorno de Netlify
-// y este script lo leerá desde una endpoint de config
-(async () => {
-  try {
-    const r = await fetch('/api/strava/config');
-    if (r.ok) {
-      const data = await r.json();
-      if (data.client_id) window.STRAVA_CLIENT_ID = data.client_id;
-    }
-  } catch(e) {}
-})();
+window.STRAVA_CLIENT_ID = '253979';
 </script>
 </body>
 </html>
