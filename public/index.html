@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SebaCycling</title>
+<meta name="theme-color" content="#0D0D0D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0D0D0D;
+  --surface: #161616;
+  --surface2: #1F1F1F;
+  --surface3: #2A2A2A;
+  --border: #2E2E2E;
+  --text: #F0F0F0;
+  --text2: #888;
+  --text3: #555;
+  --orange: #FC4C02;
+  --green: #00E676;
+  --yellow: #FFD600;
+  --blue: #448AFF;
+  --red: #FF1744;
+  --z1: #3b82f6;
+  --z2: #22c55e;
+  --z3: #eab308;
+  --z4: #f97316;
+  --z5: #ef4444;
+  --z6: #a855f7;
+  --z7: #ec4899;
+  --font: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --r: 10px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overscroll-behavior: none;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px 8px;
+}
+.topbar-title {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--orange);
+  font-family: var(--mono);
+}
+.topbar-stats {
+  display: flex; gap: 16px; margin-top: 6px; flex-wrap: wrap;
+}
+.stat-chip {
+  display: flex; align-items: baseline; gap: 4px;
+}
+.stat-val {
+  font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text);
+}
+.stat-unit {
+  font-size: 10px; color: var(--text2); letter-spacing: 0.05em;
+}
+.stat-label {
+  font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em;
+  display: block; margin-bottom: 1px;
+}
+
+/* Zone bar */
+.zone-bar {
+  display: flex; height: 3px; border-radius: 2px; overflow: hidden;
+  margin-top: 8px; gap: 1px;
+}
+.zone-bar-seg {
+  flex: 1; opacity: 0.5; transition: opacity 0.3s;
+}
+.zone-bar-seg.active { opacity: 1; }
+.z1-bg { background: var(--z1); }
+.z2-bg { background: var(--z2); }
+.z3-bg { background: var(--z3); }
+.z4-bg { background: var(--z4); }
+.z5-bg { background: var(--z5); }
+.z6-bg { background: var(--z6); }
+.z7-bg { background: var(--z7); }
+
+/* ── CONTENT ── */
+.content {
+  padding-top: 105px;
+  padding-bottom: calc(68px + var(--safe-bottom));
+  min-height: 100vh;
+}
+
+/* ── TABS ── */
+.tab { display: none; padding: 0 12px 16px; }
+.tab.active { display: block; }
+
+/* ── BOTTOM NAV ── */
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(13,13,13,0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: var(--safe-bottom);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 10px 4px 8px;
+  background: none; border: none; cursor: pointer; color: var(--text3);
+  transition: color 0.15s;
+  font-size: 10px; font-family: var(--font); gap: 4px;
+  letter-spacing: 0.04em;
+}
+.nav-btn svg { width: 22px; height: 22px; stroke-width: 1.8; }
+.nav-btn.active { color: var(--orange); }
+.nav-btn:active { opacity: 0.7; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.card-title {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text2); margin-bottom: 10px;
+}
+.card-title.orange { color: var(--orange); }
+.card-title.green { color: var(--green); }
+
+/* ── SECTION HEADER ── */
+.section-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 10px;
+}
+.section-hdr h2 {
+  font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+}
+.section-hdr .badge {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 11px; color: var(--text2); font-family: var(--mono);
+}
+
+/* ── CONNECT SCREEN ── */
+.connect-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 24px; gap: 20px; text-align: center;
+}
+.connect-screen .logo-big {
+  width: 72px; height: 72px;
+  background: var(--orange);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+}
+.connect-screen h2 { font-size: 22px; font-weight: 700; }
+.connect-screen p { color: var(--text2); font-size: 14px; line-height: 1.6; }
+.btn-orange {
+  background: var(--orange); color: #fff;
+  border: none; border-radius: 8px;
+  padding: 14px 28px; font-size: 15px; font-weight: 600;
+  cursor: pointer; width: 100%; max-width: 300px;
+  font-family: var(--font);
+  transition: opacity 0.15s;
+}
+.btn-orange:active { opacity: 0.8; }
+.btn-ghost {
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 20px; font-size: 13px;
+  cursor: pointer; font-family: var(--font);
+  transition: opacity 0.15s; width: 100%; max-width: 300px;
+}
+
+/* ── ACTIVITY LIST ── */
+.act-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: opacity 0.15s;
+}
+.act-item:last-child { border-bottom: none; }
+.act-item:active { opacity: 0.7; }
+.act-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface2); flex-shrink: 0;
+  font-size: 16px;
+}
+.act-info { flex: 1; min-width: 0; }
+.act-name {
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.act-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.act-stats { text-align: right; flex-shrink: 0; }
+.act-dist { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+.act-time { font-size: 11px; color: var(--text2); }
+
+/* ── DETAIL PANEL ── */
+.detail-panel {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: var(--bg); overflow-y: auto;
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+.detail-panel.open { display: block; }
+.detail-header {
+  position: sticky; top: 0; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px; z-index: 10;
+}
+.back-btn {
+  background: none; border: none; cursor: pointer; color: var(--orange);
+  font-family: var(--font); font-size: 14px; display: flex; align-items: center; gap: 6px;
+}
+.detail-title { font-size: 15px; font-weight: 700; }
+.detail-body { padding: 16px; }
+.stat-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;
+}
+.stat-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; text-align: center;
+}
+.stat-box .val {
+  font-family: var(--mono); font-size: 16px; font-weight: 700; display: block;
+}
+.stat-box .lbl { font-size: 10px; color: var(--text2); margin-top: 2px; display: block; }
+
+/* Chart */
+.chart-wrap { position: relative; height: 80px; margin: 8px 0; }
+.chart-canvas { width: 100%; height: 100%; }
+
+/* ── MAP ── */
+.map-placeholder {
+  height: 140px; background: var(--surface2); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); font-size: 13px; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+
+/* ── CARGA MODULE ── */
+.acwr-gauge {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 16px 0;
+}
+.gauge-arc { position: relative; width: 160px; height: 80px; overflow: hidden; }
+.gauge-arc svg { width: 160px; height: 160px; margin-top: -80px; }
+.gauge-val {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+}
+.gauge-label { font-size: 11px; color: var(--text2); }
+
+.load-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.load-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px;
+}
+.load-box .val { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+.load-box .lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+.spark-bar { display: flex; align-items: flex-end; gap: 3px; height: 50px; }
+.spark-bar-col { flex: 1; border-radius: 3px 3px 0 0; min-height: 3px; }
+
+/* ── ZONES ── */
+.zone-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.zone-row:last-child { border-bottom: none; }
+.zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.zone-name { font-size: 12px; font-weight: 600; width: 24px; }
+.zone-range { font-size: 11px; color: var(--text2); font-family: var(--mono); flex: 1; }
+.zone-bar-line { height: 4px; border-radius: 2px; }
+
+/* ── GYM MODULE ── */
+.week-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.week-tab {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.week-tab.active {
+  background: var(--orange); border-color: var(--orange); color: #fff;
+}
+.session-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.session-tab {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.session-tab.active {
+  background: var(--blue); border-color: var(--blue); color: #fff;
+}
+.exercise-row {
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.exercise-row:last-child { border-bottom: none; }
+.exercise-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.exercise-detail { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.exercise-notes { font-size: 11px; color: var(--text3); margin-top: 4px; font-style: italic; }
+.exercise-check {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px; cursor: pointer;
+}
+.check-box {
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.check-box.done { background: var(--green); border-color: var(--green); }
+.check-text { font-size: 11px; color: var(--text2); }
+
+/* ── NUTRITION MODULE ── */
+.input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.input-group { flex: 1; }
+.input-group label { font-size: 10px; color: var(--text2); display: block; margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+.input-group input, .input-group select {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 9px 10px; color: var(--text);
+  font-family: var(--font); font-size: 14px;
+  outline: none; -webkit-appearance: none;
+}
+.input-group input:focus, .input-group select:focus {
+  border-color: var(--orange);
+}
+.btn-calc {
+  background: var(--orange); color: #fff; border: none;
+  border-radius: 8px; padding: 11px 20px; font-size: 14px;
+  font-weight: 600; cursor: pointer; font-family: var(--font);
+  width: 100%; margin-top: 8px;
+}
+
+.plan-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.plan-time {
+  font-family: var(--mono); font-size: 12px; color: var(--orange);
+  width: 52px; flex-shrink: 0;
+}
+.plan-detail { font-size: 12px; flex: 1; }
+.plan-kcal { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+
+.macro-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.macro-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; text-align: center;
+}
+.macro-box .mv { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+.macro-box .ml { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+/* ── CALENDAR MODULE ── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-title { font-size: 16px; font-weight: 700; }
+.cal-nav-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; color: var(--text);
+  font-size: 16px;
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-day-header {
+  text-align: center; font-size: 10px; color: var(--text3);
+  padding: 4px 0; font-weight: 600; letter-spacing: 0.06em;
+}
+.cal-day {
+  min-height: 42px; border-radius: 6px; padding: 4px;
+  background: var(--surface); border: 1px solid transparent;
+  cursor: pointer; transition: border-color 0.15s;
+  position: relative;
+}
+.cal-day:active { border-color: var(--orange); }
+.cal-day.today { border-color: var(--orange); }
+.cal-day.other-month { opacity: 0.3; }
+.cal-day-num { font-size: 11px; font-weight: 600; }
+.cal-dots { display: flex; gap: 2px; flex-wrap: wrap; margin-top: 2px; }
+.cal-dot { width: 5px; height: 5px; border-radius: 50%; }
+.cal-dot.ride { background: var(--orange); }
+.cal-dot.gym { background: var(--blue); }
+.cal-dot.brevet { background: var(--green); }
+
+.cal-legend { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── BREVET SECTION ── */
+.brevet-ladder { display: flex; gap: 6px; margin-bottom: 16px; }
+.brevet-step {
+  flex: 1; border-radius: 8px; padding: 10px 6px; text-align: center;
+  border: 1.5px solid var(--border); cursor: pointer;
+  transition: all 0.15s; position: relative;
+}
+.brevet-step.done { border-color: var(--green); background: rgba(0,230,118,0.07); }
+.brevet-step.next { border-color: var(--orange); background: rgba(252,76,2,0.07); }
+.brevet-step .dist { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.brevet-step .sublabel { font-size: 9px; color: var(--text3); margin-top: 2px; }
+.brevet-step.done .dist { color: var(--green); }
+.brevet-step.next .dist { color: var(--orange); }
+.check-mark {
+  position: absolute; top: -6px; right: -6px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--green); color: #000;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── COUNTDOWN ── */
+.countdown-box {
+  text-align: center; padding: 20px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.countdown-val { font-family: var(--mono); font-size: 48px; font-weight: 900; color: var(--orange); }
+.countdown-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+.countdown-event { font-size: 13px; font-weight: 600; margin-top: 8px; }
+
+/* ── CONTROL CALCULATOR ── */
+.control-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.control-table th {
+  text-align: left; padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.control-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); }
+.control-table tr:last-child td { border-bottom: none; }
+.mono { font-family: var(--mono); }
+
+/* ── SEMAPHORE ── */
+.semaphore { display: flex; align-items: center; gap: 8px; }
+.sem-dot { width: 12px; height: 12px; border-radius: 50%; opacity: 0.3; }
+.sem-dot.active { opacity: 1; }
+
+/* ── WEIGHT TRACKER ── */
+.weight-input-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+.progress-bar-wrap { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+/* ── LOADER ── */
+.loader {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px; flex-direction: column; gap: 12px;
+}
+.spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--orange);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 13px; color: var(--text2); }
+
+/* ── PILLS / TAGS ── */
+.pill {
+  display: inline-block; border-radius: 4px; padding: 2px 7px;
+  font-size: 10px; font-weight: 600; font-family: var(--mono);
+}
+.pill-green { background: rgba(0,230,118,0.15); color: var(--green); }
+.pill-orange { background: rgba(252,76,2,0.15); color: var(--orange); }
+.pill-yellow { background: rgba(255,214,0,0.15); color: var(--yellow); }
+.pill-blue { background: rgba(68,138,255,0.15); color: var(--blue); }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: calc(72px + var(--safe-bottom) + 8px); left: 12px; right: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+  font-size: 13px; z-index: 500;
+  transform: translateY(20px); opacity: 0;
+  transition: all 0.25s; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── RESPONSIVE ── */
+@media (min-width: 500px) {
+  .content { max-width: 500px; margin: 0 auto; }
+  .topbar, .nav { max-width: 500px; left: 50%; transform: translateX(-50%); }
+  .toast { max-width: 476px; left: 50%; transform: translateX(-50%) translateY(20px); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">⚡ SebaCycling</div>
+  <div class="topbar-stats">
+    <div class="stat-chip">
+      <div>
+        <span class="stat-label">FTP</span>
+        <span class="stat-val">298</span>
+        <span class="stat-unit">W</span>
+      </div>
+    </div>
+    <div class="stat-chip">
+      <div>
+        <span class="stat-label">W/kg</span>
+        <span class="stat-val" id="top-wkg">3.04</span>
+      </div>
+    </div>
+    <span id="top-weight" style="display:none;">98.0</span>
+    <div class="stat-chip">
+      <div>
+        <span class="stat-label">META</span>
+        <span class="stat-val" id="top-days">—</span>
+        <span class="stat-unit">días</span>
+      </div>
+    </div>
+  </div>
+  <div class="zone-bar" id="zone-bar">
+    <div class="zone-bar-seg z1-bg"></div>
+    <div class="zone-bar-seg z2-bg"></div>
+    <div class="zone-bar-seg z3-bg"></div>
+    <div class="zone-bar-seg z4-bg"></div>
+    <div class="zone-bar-seg z5-bg"></div>
+    <div class="zone-bar-seg z6-bg"></div>
+    <div class="zone-bar-seg z7-bg"></div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- TAB: RUTAS -->
+  <div class="tab active" id="tab-rutas">
+    <div id="rutas-connect" style="display:none;">
+      <div class="connect-screen">
+        <div class="logo-big">🚴</div>
+        <h2>Conecta Strava</h2>
+        <p>Para ver tus rutas, splits y datos de actividad necesitas conectar tu cuenta de Strava.</p>
+        <button class="btn-orange" onclick="startStravaAuth()">Conectar con Strava</button>
+        <button class="btn-ghost" onclick="showDemoData()">Ver demo sin conectar</button>
+      </div>
+    </div>
+    <div id="rutas-content" style="display:none;">
+      <div class="section-hdr">
+        <h2>Mis Rutas</h2>
+        <span class="badge" id="rutas-count">—</span>
+      </div>
+      <div id="rutas-list"></div>
+    </div>
+    <div id="rutas-loader" class="loader">
+      <div class="spinner"></div>
+      <div class="loader-text">Cargando actividades…</div>
+    </div>
+  </div>
+
+  <!-- TAB: CARGA -->
+  <div class="tab" id="tab-carga">
+    <div class="section-hdr"><h2>Carga de Entrenamiento</h2></div>
+
+    <div class="card">
+      <div class="card-title orange">ACWR · Ratio Aguda/Crónica</div>
+      <div class="acwr-gauge">
+        <div class="gauge-arc">
+          <svg viewBox="0 0 160 160">
+            <path d="M 20 140 A 60 60 0 0 1 140 140" fill="none" stroke="#2A2A2A" stroke-width="14" stroke-linecap="round"/>
+            <path id="gauge-path" d="M 20 140 A 60 60 0 0 1 140 140" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round" stroke-dasharray="0 188"/>
+          </svg>
+          <div class="gauge-val" id="acwr-val">—</div>
+        </div>
+        <div class="gauge-label">ideal: 0.8 – 1.3</div>
+      </div>
+      <div class="semaphore" style="justify-content:center;margin-top:4px;">
+        <div class="sem-dot" style="background:var(--blue);" id="sem-bajo"></div>
+        <div class="sem-dot" style="background:var(--green);" id="sem-ok"></div>
+        <div class="sem-dot" style="background:var(--yellow);" id="sem-precaucion"></div>
+        <div class="sem-dot" style="background:var(--red);" id="sem-alto"></div>
+        <span id="sem-label" style="font-size:12px;color:var(--text2);margin-left:6px;">Calculando…</span>
+      </div>
+    </div>
+
+    <div class="load-grid">
+      <div class="load-box">
+        <div class="lbl">Carga Aguda (7d)</div>
+        <div class="val" id="atl-val">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">TSS promedio</div>
+      </div>
+      <div class="load-box">
+        <div class="lbl">Carga Crónica (28d)</div>
+        <div class="val" id="ctl-val">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">TSS promedio</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">CARGA SEMANAL · TSS estimado</div>
+      <div class="spark-bar" id="spark-bar"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <span style="font-size:9px;color:var(--text3);" id="spark-start">—</span>
+        <span style="font-size:9px;color:var(--text3);">Hoy</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title green">ZONAS DE POTENCIA · FTP 298W</div>
+      <div id="zones-list"></div>
+    </div>
+  </div>
+
+  <!-- TAB: GYM -->
+  <div class="tab" id="tab-gym">
+    <div class="section-hdr"><h2>Preparación Física</h2><span class="badge">MacLab</span></div>
+
+    <div class="week-tabs" id="gym-week-tabs"></div>
+    <div class="session-tabs" id="gym-session-tabs"></div>
+
+    <div class="card" id="gym-obs-card" style="display:none;">
+      <div class="card-title">Observaciones de la semana</div>
+      <div id="gym-obs-text" style="font-size:12px;color:var(--text2);line-height:1.6;"></div>
+    </div>
+
+    <div class="card">
+      <div id="gym-exercises"></div>
+    </div>
+  </div>
+
+  <!-- TAB: NUTRICIÓN -->
+  <div class="tab" id="tab-nutri">
+    <div class="section-hdr"><h2>Nutrición</h2></div>
+
+    <div class="card">
+      <div class="card-title orange">CALCULADORA BREVET</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Distancia (km)</label>
+          <input type="number" id="nut-dist" value="200" min="50" max="1200">
+        </div>
+        <div class="input-group">
+          <label>Velocidad media</label>
+          <input type="number" id="nut-speed" value="22" min="15" max="35">
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Peso (kg)</label>
+          <input type="number" id="nut-weight" value="98" min="50" max="150">
+        </div>
+        <div class="input-group">
+          <label>Desnivel (m)</label>
+          <input type="number" id="nut-elev" value="500" min="0" max="10000">
+        </div>
+      </div>
+      <button class="btn-calc" onclick="calcNutrition()">Calcular plan</button>
+    </div>
+
+    <div class="card" id="nut-result" style="display:none;">
+      <div class="card-title green">PLAN DE ALIMENTACIÓN</div>
+      <div id="nut-summary" style="margin-bottom:12px;"></div>
+      <div id="nut-plan"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">PLAN DIARIO · Días de entrenamiento</div>
+      <div class="macro-row">
+        <div class="macro-box">
+          <div class="mv" style="color:var(--orange);">~2800</div>
+          <div class="ml">kcal totales</div>
+        </div>
+        <div class="macro-box">
+          <div class="mv" style="color:var(--blue);">~160g</div>
+          <div class="ml">proteína</div>
+        </div>
+        <div class="macro-box">
+          <div class="mv" style="color:var(--green);">~320g</div>
+          <div class="ml">carbos</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="plan-row" style="border:none;padding-top:0;">
+          <div class="plan-time">06:30</div>
+          <div class="plan-detail">Desayuno antes del commuting</div>
+        </div>
+        <div class="plan-row">
+          <div class="plan-time">09:00</div>
+          <div class="plan-detail">Media mañana (café + fruta)</div>
+        </div>
+        <div class="plan-row">
+          <div class="plan-time">13:00</div>
+          <div class="plan-detail">Almuerzo (legumbres + proteína)</div>
+        </div>
+        <div class="plan-row">
+          <div class="plan-time">17:15</div>
+          <div class="plan-detail">🚨 Colación anti-ansiedad (plátano + maní)</div>
+          <div class="plan-kcal">~250</div>
+        </div>
+        <div class="plan-row">
+          <div class="plan-time">20:00</div>
+          <div class="plan-detail">Cena (verduras + pollo/huevo)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CALENDARIO -->
+  <div class="tab" id="tab-cal">
+    <div class="section-hdr"><h2>Calendario</h2></div>
+
+    <div class="card">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="cal-title" id="cal-month-label"></div>
+        <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend" style="margin-top:12px;">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--orange);"></div>Ruta</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue);"></div>Gym</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green);"></div>Brevet</div>
+      </div>
+    </div>
+
+    <!-- Brevets en el calendario -->
+    <div class="card">
+      <div class="card-title green">ESCALERA ACP · Audax Club Ciclista Santiago</div>
+      <div class="brevet-ladder" id="brevet-ladder"></div>
+    </div>
+
+    <div class="countdown-box" id="countdown-box">
+      <div class="countdown-val" id="countdown-days">—</div>
+      <div class="countdown-label">días para el próximo brevet</div>
+      <div class="countdown-event" id="countdown-event">—</div>
+    </div>
+
+    <!-- Calculadora ACP -->
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title orange">CALCULADORA DE CONTROLES ACP</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Distancia (km)</label>
+          <input type="number" id="acp-dist" value="200" min="100" max="1200">
+        </div>
+        <div class="input-group">
+          <label>Hora de salida</label>
+          <input type="time" id="acp-start" value="07:00">
+        </div>
+      </div>
+      <button class="btn-calc" onclick="calcACP()">Calcular controles</button>
+      <div id="acp-result" style="margin-top:12px;display:none;">
+        <table class="control-table" id="acp-table"></table>
+      </div>
+    </div>
+
+    <!-- Peso y W/kg -->
+    <div class="card" style="margin-top:10px;">
+      <div class="card-title">TRACKER W/kg</div>
+      <div class="weight-input-row">
+        <div class="input-group" style="flex:1;">
+          <label>Registro</label>
+          <input type="number" id="weight-input" value="98" step="0.1" min="60" max="130" style="opacity:0;position:absolute;pointer-events:none;">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 10px;font-size:14px;color:var(--text3);cursor:default;user-select:none;">••••</div>
+        </div>
+        <button class="btn-orange" style="width:auto;padding:9px 16px;white-space:nowrap;" onclick="promptWeight()">Registrar</button>
+      </div>
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
+          <span>Progreso hacia meta</span>
+          <span id="wkg-current">3.04 W/kg</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="weight-progress-bar" style="background:var(--orange);width:0%;"></div>
+        </div>
+      </div>
+      <div id="weight-log-list" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- DETAIL PANEL (Ruta) -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-header">
+    <button class="back-btn" onclick="closeDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Volver
+    </button>
+    <div class="detail-title" id="detail-title"></div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showTab('rutas',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18M3 6l9-3 9 3M3 18l9 3 9-3"/></svg>
+    Rutas
+  </button>
+  <button class="nav-btn" onclick="showTab('carga',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Carga
+  </button>
+  <button class="nav-btn" onclick="showTab('gym',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6.5 6.5h11M6.5 17.5h11M4 12h16M2 8v8M22 8v8"/></svg>
+    Gym
+  </button>
+  <button class="nav-btn" onclick="showTab('nutri',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a10 10 0 0 1 10 10c0 5.5-4.5 10-10 10S2 17.5 2 12A10 10 0 0 1 12 2z"/><path d="M12 6v6l4 2"/></svg>
+    Nutrición
+  </button>
+  <button class="nav-btn" onclick="showTab('cal',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Cal
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ═══════════════════════════════════════════════════
+const STRAVA_CLIENT_ID = ''; // Se carga desde env en Netlify; aquí se pone al hacer deploy
+const REDIRECT_URI = window.location.origin + '/auth/callback';
+const FTP = 298;
+const POWER_ZONES = [
+  { name: 'Z1', label: 'Recuperación', min: 0, max: 164, color: '#3b82f6' },
+  { name: 'Z2', label: 'Resistencia', min: 165, max: 224, color: '#22c55e' },
+  { name: 'Z3', label: 'Tempo', min: 225, max: 268, color: '#eab308' },
+  { name: 'Z4', label: 'Umbral', min: 269, max: 313, color: '#f97316' },
+  { name: 'Z5', label: 'VO2max', min: 314, max: 358, color: '#ef4444' },
+  { name: 'Z6', label: 'Anaeróbico', min: 359, max: 447, color: '#a855f7' },
+  { name: 'Z7', label: 'Neuromusc.', min: 448, max: 9999, color: '#ec4899' },
+];
+const HR_ZONES = [
+  { name: 'Z1', max: 144 }, { name: 'Z2', max: 180 },
+  { name: 'Z3', max: 198 }, { name: 'Z4', max: 215 }, { name: 'Z5', max: 999 },
+];
+const BREVETS = [
+  { dist: 200, label: '200km', date: null, done: false },
+  { dist: 300, label: '300km', date: null, done: false },
+  { dist: 400, label: '400km', date: null, done: false },
+  { dist: 600, label: '600km', date: null, done: false },
+  { dist: 1000, label: '1000km', date: '2027-03-15', done: false },
+];
+const GYM_PLAN = {
+  1: {
+    obs: 'Semana de adaptación. Enfoque en técnica y rangos de movimiento. Cargas bajas.',
+    A: { name: 'Lunes – Tren inferior', exercises: [
+      { name: 'Sentadilla goblet', detail: '3×12 reps', notes: 'Peso moderado, foco en profundidad' },
+      { name: 'Zancada caminando', detail: '3×10 por lado', notes: 'Mantén torso erecto' },
+      { name: 'Puente de glúteos', detail: '3×15', notes: 'Pausa 2s arriba' },
+      { name: 'Plancha abdominal', detail: '3×30s', notes: '' },
+    ]},
+    B: { name: 'Miércoles – Tren superior', exercises: [
+      { name: 'Press de hombros con mancuernas', detail: '3×12', notes: '' },
+      { name: 'Remo con mancuerna', detail: '3×12 por lado', notes: 'Codo cerca del cuerpo' },
+      { name: 'Flexiones', detail: '3×max', notes: 'Descanso 90s entre series' },
+      { name: 'Curl de bíceps', detail: '3×12', notes: '' },
+    ]},
+    C: { name: 'Viernes – Fuerza funcional', exercises: [
+      { name: 'Peso muerto rumano', detail: '3×10', notes: 'Columna neutra siempre' },
+      { name: 'Step-up al cajón', detail: '3×10 por lado', notes: 'Impulso desde el talón' },
+      { name: 'Core: Pallof press', detail: '3×10 por lado', notes: '' },
+      { name: 'Estabilidad unipodal', detail: '3×30s por lado', notes: '' },
+    ]},
+    D: { name: 'Sábado – Movilidad y core', exercises: [
+      { name: 'Foam rolling', detail: '10 min', notes: 'IT band, cuádriceps, pantorrilla' },
+      { name: 'Movilidad de cadera', detail: '2×10 por lado', notes: '' },
+      { name: 'Estiramiento de isquiotibiales', detail: '3×40s', notes: '' },
+      { name: 'Respiración diafragmática', detail: '5 min', notes: '' },
+    ]},
+  },
+  2: {
+    obs: 'Semana de carga progresiva. Aumentar 5–10% el peso respecto a semana 1.',
+    A: { name: 'Lunes – Tren inferior carga', exercises: [
+      { name: 'Sentadilla con barra (o goblet pesado)', detail: '4×10', notes: '+5% vs sem 1' },
+      { name: 'Prensa de piernas', detail: '3×12', notes: '' },
+      { name: 'Zancada inversa', detail: '3×10 por lado', notes: '' },
+      { name: 'Elevación de gemelos', detail: '3×20', notes: '' },
+    ]},
+    B: { name: 'Miércoles – Tren superior carga', exercises: [
+      { name: 'Press banca (o flexiones lastradas)', detail: '4×10', notes: '' },
+      { name: 'Dominadas asistidas o jalón al pecho', detail: '3×10', notes: '' },
+      { name: 'Press hombros mancuernas', detail: '3×12', notes: '' },
+      { name: 'Curl bíceps + tríceps en polea', detail: '3×12', notes: '' },
+    ]},
+    C: { name: 'Viernes – Potencia ciclista', exercises: [
+      { name: 'Peso muerto convencional', detail: '4×8', notes: 'Técnica perfecta' },
+      { name: 'Hip thrust con barra', detail: '3×12', notes: 'Foco en glúteo' },
+      { name: 'Bulgarian split squat', detail: '3×8 por lado', notes: '' },
+      { name: 'Plancha lateral', detail: '3×30s por lado', notes: '' },
+    ]},
+    D: { name: 'Sábado – Recuperación activa', exercises: [
+      { name: 'Stretching completo', detail: '20 min', notes: '' },
+      { name: 'Rodillo de espuma', detail: '10 min', notes: '' },
+      { name: 'Caminata suave', detail: '20–30 min', notes: 'FC < 120 bpm' },
+    ]},
+  },
+  3: {
+    obs: 'Semana de pico. Máxima intensidad con series de 6–8 repeticiones. Descanso completo el domingo.',
+    A: { name: 'Lunes – Fuerza máxima piernas', exercises: [
+      { name: 'Sentadilla', detail: '4×6 pesado', notes: 'RPE 8–9' },
+      { name: 'Peso muerto', detail: '4×6', notes: 'Máximo técnico' },
+      { name: 'Zancada con mancuernas', detail: '3×8 por lado', notes: '' },
+      { name: 'Extensión de cadera con cable', detail: '3×12', notes: '' },
+    ]},
+    B: { name: 'Miércoles – Fuerza máxima superior', exercises: [
+      { name: 'Press banca', detail: '4×6', notes: '' },
+      { name: 'Dominadas', detail: '4×max', notes: '' },
+      { name: 'Press hombros militar', detail: '3×8', notes: '' },
+      { name: 'Farmer carry', detail: '3×30m', notes: '' },
+    ]},
+    C: { name: 'Viernes – Potencia explosiva', exercises: [
+      { name: 'Jump squat (sin peso)', detail: '4×8', notes: 'Potencia máxima en cada rep' },
+      { name: 'Kettlebell swing', detail: '4×15', notes: '' },
+      { name: 'Box step-up explosivo', detail: '3×8 por lado', notes: '' },
+      { name: 'Sprints en bici (1 min ON / 2 min OFF)', detail: '5 repeticiones', notes: 'FC máx en los sprints' },
+    ]},
+    D: { name: 'Sábado – Descanso activo', exercises: [
+      { name: 'Yoga o stretching', detail: '30 min', notes: '' },
+      { name: 'Masaje con pelota', detail: 'pantorrillas y pies', notes: '' },
+    ]},
+  },
+  4: {
+    obs: 'Semana de descarga. Reducir volumen 40%. Mantener intensidad. Preparar cuerpo para siguiente ciclo.',
+    A: { name: 'Lunes – Descarga tren inferior', exercises: [
+      { name: 'Sentadilla', detail: '3×8 (–40% vol)', notes: 'Peso igual, menos series' },
+      { name: 'Puente de glúteos', detail: '2×15', notes: '' },
+      { name: 'Estiramiento completo', detail: '10 min', notes: '' },
+    ]},
+    B: { name: 'Miércoles – Descarga tren superior', exercises: [
+      { name: 'Press banca', detail: '2×8', notes: '' },
+      { name: 'Remo', detail: '2×10', notes: '' },
+      { name: 'Movilidad de hombros', detail: '10 min', notes: '' },
+    ]},
+    C: { name: 'Viernes – Mantenimiento', exercises: [
+      { name: 'Peso muerto', detail: '2×8', notes: '' },
+      { name: 'Core completo', detail: '15 min', notes: '' },
+    ]},
+    D: { name: 'Domingo – Salida larga en bici', exercises: [
+      { name: 'Rodada Z2', detail: '3–4 horas', notes: 'FC 145–175 bpm todo el tiempo, ritmo conversacional' },
+    ]},
+  },
+};
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let STATE = {
+  accessToken: null, refreshToken: null, expiresAt: 0,
+  activities: [], currentWeek: 1, currentSession: 'A',
+  currentMonth: new Date(), weightLog: [], brevets: [...BREVETS],
+  gymDone: {}, // { 'w1-A-0': true }
+};
+
+function saveState() {
+  const toSave = {
+    accessToken: STATE.accessToken, refreshToken: STATE.refreshToken,
+    expiresAt: STATE.expiresAt, weightLog: STATE.weightLog,
+    brevets: STATE.brevets, gymDone: STATE.gymDone,
+    activities_cache: STATE.activities.slice(0, 30).map(a => ({
+      id: a.id, name: a.name, start_local: a.start_local, sport_type: a.sport_type,
+      summary: a.summary, reduced_polyline: a.reduced_polyline,
+    })),
+  };
+  try { localStorage.setItem('sebacycling_v1', JSON.stringify(toSave)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('sebacycling_v1');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    STATE.accessToken = s.accessToken || null;
+    STATE.refreshToken = s.refreshToken || null;
+    STATE.expiresAt = s.expiresAt || 0;
+    STATE.weightLog = s.weightLog || [];
+    STATE.brevets = s.brevets || [...BREVETS];
+    STATE.gymDone = s.gymDone || {};
+    if (s.activities_cache) STATE.activities = s.activities_cache;
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  handleAuthCallback();
+  updateTopbar();
+  renderZones();
+  renderGym();
+  renderCalendar();
+  renderBrevetLadder();
+  updateCountdown();
+  updateWeightTracker();
+  initRutas();
+});
+
+function handleAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const auth = params.get('auth');
+  if (!auth) return;
+  if (auth === 'success') {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    STATE.accessToken = hash.get('access_token');
+    STATE.refreshToken = hash.get('refresh_token');
+    STATE.expiresAt = parseInt(hash.get('expires_at') || '0');
+    saveState();
+    history.replaceState({}, '', '/');
+    showToast('✅ Strava conectado correctamente');
+  } else {
+    showToast('❌ Error al conectar con Strava. Intenta nuevamente.');
+    history.replaceState({}, '', '/');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TOPBAR
+// ═══════════════════════════════════════════════════
+function updateTopbar() {
+  const weight = STATE.weightLog.length > 0
+    ? STATE.weightLog[STATE.weightLog.length - 1].w : 98;
+  document.getElementById('top-weight').textContent = weight.toFixed(1);
+  document.getElementById('top-wkg').textContent = (FTP / weight).toFixed(2);
+  const target = new Date('2027-03-15');
+  const days = Math.ceil((target - new Date()) / 86400000);
+  document.getElementById('top-days').textContent = days > 0 ? days : 0;
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════
+// STRAVA AUTH
+// ═══════════════════════════════════════════════════
+function startStravaAuth() {
+  // CLIENT_ID se inyecta como variable global desde un script de configuración
+  const clientId = window.STRAVA_CLIENT_ID || prompt('Ingresa tu Strava Client ID:');
+  if (!clientId) return;
+  const scope = 'read,activity:read_all';
+  const url = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${scope}`;
+  window.location.href = url;
+}
+
+function isTokenValid() {
+  return STATE.accessToken && Date.now() / 1000 < STATE.expiresAt - 60;
+}
+
+async function stravaFetch(path, params = {}) {
+  if (!STATE.accessToken) throw new Error('No token');
+  const qs = new URLSearchParams(params).toString();
+  const url = `/api/strava${path}${qs ? '?' + qs : ''}`;
+  const res = await fetch(url, {
+    headers: {
+      'x-strava-token': STATE.accessToken,
+      'x-strava-refresh': STATE.refreshToken || '',
+      'x-strava-expires': String(STATE.expiresAt),
+    },
+  });
+  const newToken = res.headers.get('x-new-access-token');
+  if (newToken && newToken !== STATE.accessToken) {
+    STATE.accessToken = newToken;
+    saveState();
+  }
+  if (!res.ok) throw new Error(`Strava API error: ${res.status}`);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════
+// RUTAS MODULE
+// ═══════════════════════════════════════════════════
+async function initRutas() {
+  const loader = document.getElementById('rutas-loader');
+  const connect = document.getElementById('rutas-connect');
+  const content = document.getElementById('rutas-content');
+
+  if (!STATE.accessToken) {
+    loader.style.display = 'none';
+    connect.style.display = 'block';
+    if (STATE.activities.length > 0) {
+      connect.style.display = 'none';
+      content.style.display = 'block';
+      renderActivities(STATE.activities);
+    }
+    return;
+  }
+
+  // Si hay cache, mostrar inmediatamente mientras cargamos fresh
+  if (STATE.activities.length > 0) {
+    loader.style.display = 'none';
+    content.style.display = 'block';
+    renderActivities(STATE.activities);
+  }
+
+  try {
+    const acts = await stravaFetch('/athlete/activities', { per_page: 30, include_all_efforts: false });
+    STATE.activities = acts;
+    saveState();
+    loader.style.display = 'none';
+    connect.style.display = 'none';
+    content.style.display = 'block';
+    renderActivities(acts);
+    // Con actividades, calcular carga
+    calcLoad(acts);
+  } catch (e) {
+    loader.style.display = 'none';
+    if (STATE.activities.length === 0) {
+      connect.style.display = 'block';
+    }
+  }
+}
+
+function showDemoData() {
+  document.getElementById('rutas-connect').style.display = 'none';
+  document.getElementById('rutas-loader').style.display = 'none';
+  document.getElementById('rutas-content').style.display = 'block';
+  const demo = [
+    { id: '1', name: 'Commuting mañana', sport_type: 'Ride', start_local: new Date().toISOString(),
+      summary: { distance: 12300, moving_time: 2400, elevation_gain: 100, avg_speed: 5.1, total_calories: 620 }},
+    { id: '2', name: 'Commuting tarde', sport_type: 'Ride', start_local: new Date().toISOString(),
+      summary: { distance: 11600, moving_time: 1900, elevation_gain: 5, avg_speed: 6.1, total_calories: 370 }},
+    { id: '3', name: 'Salida larga sábado', sport_type: 'Ride', start_local: new Date().toISOString(),
+      summary: { distance: 80000, moving_time: 14400, elevation_gain: 800, avg_speed: 5.5, total_calories: 2200 }},
+  ];
+  STATE.activities = demo;
+  renderActivities(demo);
+  calcLoad(demo);
+}
+
+function renderActivities(acts) {
+  const list = document.getElementById('rutas-list');
+  const count = document.getElementById('rutas-count');
+  const rides = acts.filter(a => a.sport_type === 'Ride' || a.sport_type === 'VirtualRide');
+  count.textContent = rides.length + ' rutas';
+
+  list.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card';
+  rides.forEach(act => {
+    const d = act.summary;
+    const km = (d.distance / 1000).toFixed(1);
+    const h = Math.floor(d.moving_time / 3600);
+    const m = Math.floor((d.moving_time % 3600) / 60);
+    const timeStr = h > 0 ? `${h}h ${m}m` : `${m}m`;
+    const date = new Date(act.start_local).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+    const isVirtual = act.sport_type === 'VirtualRide';
+    const icon = isVirtual ? '🖥️' : (d.elevation_gain > 100 ? '⛰️' : '🚴');
+
+    const el = document.createElement('div');
+    el.className = 'act-item';
+    el.innerHTML = `
+      <div class="act-icon">${icon}</div>
+      <div class="act-info">
+        <div class="act-name">${act.name}</div>
+        <div class="act-meta">${date} · ${d.elevation_gain}m desnivel · ${d.total_calories || '—'} kcal</div>
+      </div>
+      <div class="act-stats">
+        <div class="act-dist">${km} km</div>
+        <div class="act-time">${timeStr}</div>
+      </div>`;
+    el.onclick = () => showActivityDetail(act);
+    card.appendChild(el);
+  });
+  list.appendChild(card);
+}
+
+function showActivityDetail(act) {
+  const panel = document.getElementById('detail-panel');
+  const title = document.getElementById('detail-title');
+  const body = document.getElementById('detail-body');
+
+  title.textContent = act.name;
+  panel.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const d = act.summary;
+  const km = (d.distance / 1000).toFixed(1);
+  const h = Math.floor(d.moving_time / 3600);
+  const m = Math.floor((d.moving_time % 3600) / 60);
+  const avgKmh = (d.avg_speed * 3.6).toFixed(1);
+  const tssEst = estimateTSS(d.moving_time, d.avg_speed * 3.6, d.elevation_gain);
+
+  // Zona dominante
+  const avgW = d.average_watts || estimateWatts(d.avg_speed * 3.6, d.elevation_gain, d.moving_time);
+  const zone = getZone(avgW);
+
+  body.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><span class="val">${km}</span><span class="lbl">km</span></div>
+      <div class="stat-box"><span class="val">${h}h ${m}m</span><span class="lbl">tiempo</span></div>
+      <div class="stat-box"><span class="val">${d.elevation_gain}</span><span class="lbl">m desnivel</span></div>
+      <div class="stat-box"><span class="val">${avgKmh}</span><span class="lbl">km/h media</span></div>
+      <div class="stat-box"><span class="val">${d.total_calories || '—'}</span><span class="lbl">kcal</span></div>
+      <div class="stat-box"><span class="val" style="color:${zone.color}">${tssEst}</span><span class="lbl">TSS est.</span></div>
+    </div>
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-title">ZONA DOMINANTE ESTIMADA</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:8px;background:${zone.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#000;">${zone.name}</div>
+        <div>
+          <div style="font-weight:600;">${zone.label}</div>
+          <div style="font-size:12px;color:var(--text2);">${zone.min}–${zone.max === 9999 ? '∞' : zone.max}W estimados</div>
+        </div>
+      </div>
+    </div>
+    ${act.reduced_polyline ? `<div class="map-placeholder">🗺️ Mapa disponible — conecta con API de mapas para visualizar</div>` : ''}
+    <div class="card">
+      <div class="card-title">SPLITS ESTIMADOS</div>
+      ${renderSplits(d, km)}
+    </div>`;
+}
+
+function renderSplits(d, totalKm) {
+  const splits = [];
+  const totalKmNum = parseFloat(totalKm);
+  const intervals = Math.min(Math.ceil(totalKmNum / 10), 12);
+  const distPerInterval = totalKmNum / intervals;
+  for (let i = 0; i < intervals; i++) {
+    const km_from = (i * distPerInterval).toFixed(0);
+    const km_to = Math.min((i + 1) * distPerInterval, totalKmNum).toFixed(0);
+    const speedVariance = (Math.random() - 0.5) * 2;
+    const avgKmh = d.avg_speed * 3.6;
+    const splitKmh = (avgKmh + speedVariance).toFixed(1);
+    splits.push(`<div class="plan-row"><div class="plan-time" style="color:var(--text2);width:70px;">km ${km_from}–${km_to}</div><div class="plan-detail">${splitKmh} km/h</div></div>`);
+  }
+  return splits.join('');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ═══════════════════════════════════════════════════
+// CARGA MODULE
+// ═══════════════════════════════════════════════════
+function estimateTSS(movingTime, avgKmh, elevGain) {
+  // TSS simplificado: basado en tiempo, intensidad relativa y desnivel
+  const hours = movingTime / 3600;
+  const intensityFactor = Math.min((avgKmh / 30) + (elevGain / 5000), 1.2);
+  return Math.round(hours * intensityFactor * intensityFactor * 100);
+}
+
+function estimateWatts(avgKmh, elevGain, movingTime) {
+  const grade = elevGain / (avgKmh * movingTime / 3600 * 1000) * 100;
+  return Math.round(50 + avgKmh * 5 + grade * 20);
+}
+
+function getZone(watts) {
+  return POWER_ZONES.find(z => watts >= z.min && watts <= z.max) || POWER_ZONES[6];
+}
+
+function calcLoad(activities) {
+  const now = Date.now();
+  const day = 86400000;
+  // TSS por día de los últimos 42 días
+  const tssMap = {};
+  activities.forEach(a => {
+    const t = new Date(a.start_local).getTime();
+    const daysAgo = Math.floor((now - t) / day);
+    if (daysAgo < 0 || daysAgo > 42) return;
+    const tss = estimateTSS(a.summary.moving_time, a.summary.avg_speed * 3.6, a.summary.elevation_gain);
+    const key = daysAgo;
+    tssMap[key] = (tssMap[key] || 0) + tss;
+  });
+
+  // ATL (7 días) y CTL (28 días)
+  let atl = 0, ctl = 0;
+  for (let i = 0; i < 7; i++) atl += (tssMap[i] || 0);
+  for (let i = 0; i < 28; i++) ctl += (tssMap[i] || 0);
+  atl = atl / 7; ctl = ctl / 28;
+  const acwr = ctl > 0 ? (atl / ctl) : 0;
+
+  document.getElementById('atl-val').textContent = Math.round(atl);
+  document.getElementById('ctl-val').textContent = Math.round(ctl);
+  updateACWR(acwr);
+
+  // Spark bar (8 semanas)
+  renderSparkBar(tssMap);
+}
+
+function updateACWR(val) {
+  const v = parseFloat(val.toFixed(2));
+  document.getElementById('acwr-val').textContent = v.toFixed(2);
+
+  // Gauge: arc de 180° → stroke-dasharray
+  const pct = Math.min(v / 2, 1);
+  const circumference = 188;
+  document.getElementById('gauge-path').setAttribute('stroke-dasharray',
+    `${pct * circumference} ${circumference}`);
+
+  let color, label, active;
+  if (v < 0.8) { color = '#448AFF'; label = 'Carga baja'; active = 'sem-bajo'; }
+  else if (v <= 1.3) { color = '#00E676'; label = 'Zona óptima ✓'; active = 'sem-ok'; }
+  else if (v <= 1.5) { color = '#FFD600'; label = 'Precaución'; active = 'sem-precaucion'; }
+  else { color = '#FF1744'; label = 'Alto riesgo'; active = 'sem-alto'; }
+
+  document.getElementById('gauge-path').setAttribute('stroke', color);
+  document.getElementById('sem-label').textContent = label;
+  ['sem-bajo','sem-ok','sem-precaucion','sem-alto'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  document.getElementById(active).classList.add('active');
+}
+
+function renderSparkBar(tssMap) {
+  const bar = document.getElementById('spark-bar');
+  bar.innerHTML = '';
+  const weeks = 8;
+  const vals = [];
+  for (let w = weeks - 1; w >= 0; w--) {
+    let weekTss = 0;
+    for (let d = 0; d < 7; d++) weekTss += (tssMap[w * 7 + d] || 0);
+    vals.push(weekTss);
+  }
+  const maxV = Math.max(...vals, 1);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 56);
+  document.getElementById('spark-start').textContent =
+    startDate.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+
+  vals.forEach((v, i) => {
+    const col = document.createElement('div');
+    col.className = 'spark-bar-col';
+    const pct = (v / maxV) * 100;
+    col.style.height = pct + '%';
+    const hue = i === vals.length - 1 ? 'var(--orange)' : 'var(--surface3)';
+    col.style.background = hue;
+    bar.appendChild(col);
+  });
+}
+
+function renderZones() {
+  const list = document.getElementById('zones-list');
+  list.innerHTML = '';
+  POWER_ZONES.forEach(z => {
+    const el = document.createElement('div');
+    el.className = 'zone-row';
+    const maxStr = z.max === 9999 ? '∞' : z.max;
+    el.innerHTML = `
+      <div class="zone-dot" style="background:${z.color};"></div>
+      <div class="zone-name" style="color:${z.color};">${z.name}</div>
+      <div class="zone-range">${z.min}–${maxStr}W</div>
+      <div style="flex:2;">
+        <div class="zone-bar-line" style="background:${z.color};width:${(z.max === 9999 ? 100 : (z.max / 447) * 100)}%;opacity:0.5;"></div>
+      </div>
+      <div class="pill" style="background:rgba(0,0,0,0.3);color:${z.color};border:1px solid ${z.color}33;">
+        ${z.label}
+      </div>`;
+    list.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// GYM MODULE
+// ═══════════════════════════════════════════════════
+function renderGym() {
+  // Week tabs
+  const weekTabs = document.getElementById('gym-week-tabs');
+  weekTabs.innerHTML = '';
+  [1, 2, 3, 4].forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'week-tab' + (w === STATE.currentWeek ? ' active' : '');
+    btn.textContent = 'Sem ' + w;
+    btn.onclick = () => { STATE.currentWeek = w; renderGym(); };
+    weekTabs.appendChild(btn);
+  });
+
+  // Session tabs
+  const sessTabs = document.getElementById('gym-session-tabs');
+  sessTabs.innerHTML = '';
+  ['A', 'B', 'C', 'D'].forEach(s => {
+    const plan = GYM_PLAN[STATE.currentWeek][s];
+    const btn = document.createElement('button');
+    btn.className = 'session-tab' + (s === STATE.currentSession ? ' active' : '');
+    btn.textContent = s;
+    btn.title = plan.name;
+    btn.onclick = () => { STATE.currentSession = s; renderGym(); };
+    sessTabs.appendChild(btn);
+  });
+
+  // Observations
+  const obs = GYM_PLAN[STATE.currentWeek].obs;
+  const obsCard = document.getElementById('gym-obs-card');
+  if (obs) {
+    obsCard.style.display = 'block';
+    document.getElementById('gym-obs-text').textContent = obs;
+  } else {
+    obsCard.style.display = 'none';
+  }
+
+  // Exercises
+  const session = GYM_PLAN[STATE.currentWeek][STATE.currentSession];
+  const exEl = document.getElementById('gym-exercises');
+  exEl.innerHTML = `<div class="card-title" style="margin-bottom:12px;">${session.name}</div>`;
+  session.exercises.forEach((ex, i) => {
+    const key = `w${STATE.currentWeek}-${STATE.currentSession}-${i}`;
+    const done = STATE.gymDone[key];
+    const el = document.createElement('div');
+    el.className = 'exercise-row';
+    el.innerHTML = `
+      <div class="exercise-name" style="${done ? 'text-decoration:line-through;color:var(--text3);' : ''}">${ex.name}</div>
+      <div class="exercise-detail">${ex.detail}</div>
+      ${ex.notes ? `<div class="exercise-notes">${ex.notes}</div>` : ''}
+      <label class="exercise-check">
+        <div class="check-box ${done ? 'done' : ''}" id="cb-${key}">
+          ${done ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+        </div>
+        <span class="check-text">${done ? 'Completado' : 'Marcar como completado'}</span>
+      </label>`;
+    el.querySelector('.exercise-check').onclick = () => {
+      STATE.gymDone[key] = !STATE.gymDone[key];
+      saveState();
+      renderGym();
+    };
+    exEl.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// NUTRITION MODULE
+// ═══════════════════════════════════════════════════
+function calcNutrition() {
+  const dist = parseFloat(document.getElementById('nut-dist').value) || 200;
+  const speed = parseFloat(document.getElementById('nut-speed').value) || 22;
+  const weight = parseFloat(document.getElementById('nut-weight').value) || 98;
+  const elev = parseFloat(document.getElementById('nut-elev').value) || 500;
+
+  const hours = dist / speed;
+  const kcalPerHour = 400 + (weight - 70) * 4 + (elev / dist) * 200;
+  const totalKcal = Math.round(kcalPerHour * hours);
+  const carbsNeeded = Math.round(totalKcal * 0.65 / 4); // 65% carbos
+  const liquidLiters = Math.round(hours * 0.75 * 10) / 10;
+
+  const result = document.getElementById('nut-result');
+  result.style.display = 'block';
+
+  document.getElementById('nut-summary').innerHTML = `
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-box"><span class="val">${hours.toFixed(1)}h</span><span class="lbl">duración est.</span></div>
+      <div class="stat-box"><span class="val" style="color:var(--orange);">${totalKcal}</span><span class="lbl">kcal total</span></div>
+      <div class="stat-box"><span class="val" style="color:var(--blue);">${liquidLiters}L</span><span class="lbl">hidratación</span></div>
+    </div>`;
+
+  // Plan cada 30 min
+  const plan = document.getElementById('nut-plan');
+  plan.innerHTML = '';
+  const intervals = Math.floor(hours * 2);
+  const kcalPerInterval = Math.round(totalKcal / intervals);
+  const foods = [
+    'Plátano + gel energético', 'Barritas de avena', 'Gel + agua + sal',
+    'Sándwich de mantequilla de maní', 'Dátiles + nueces', 'Gel + electrolitos',
+    'Fruta + barrita', 'Arroz con pollo (control)', 'Gel + plátano',
+    'Electrolitos + galletas', 'Sándwich mixto', 'Gel de cafeína + barrita',
+  ];
+  for (let i = 0; i < Math.min(intervals, 12); i++) {
+    const minTotal = i * 30;
+    const hh = Math.floor(minTotal / 60).toString().padStart(2, '0');
+    const mm = (minTotal % 60).toString().padStart(2, '0');
+    const isControl = dist > 200 && [3, 6, 9].includes(i);
+    const el = document.createElement('div');
+    el.className = 'plan-row';
+    el.innerHTML = `
+      <div class="plan-time">${hh}:${mm}</div>
+      <div class="plan-detail">${isControl ? '🏁 Control ACP — ' : ''}${foods[i % foods.length]}</div>
+      <div class="plan-kcal">${kcalPerInterval} kcal</div>`;
+    plan.appendChild(el);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// CALENDAR MODULE
+// ═══════════════════════════════════════════════════
+function changeMonth(dir) {
+  STATE.currentMonth = new Date(STATE.currentMonth.getFullYear(), STATE.currentMonth.getMonth() + dir, 1);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const d = STATE.currentMonth;
+  const label = d.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  document.getElementById('cal-month-label').textContent =
+    label.charAt(0).toUpperCase() + label.slice(1);
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Headers
+  ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'].forEach(day => {
+    const h = document.createElement('div');
+    h.className = 'cal-day-header';
+    h.textContent = day;
+    grid.appendChild(h);
+  });
+
+  const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  let startDow = firstDay.getDay();
+  if (startDow === 0) startDow = 7;
+
+  // Días del mes anterior
+  for (let i = 1; i < startDow; i++) {
+    const prev = new Date(firstDay);
+    prev.setDate(prev.getDate() - (startDow - i));
+    grid.appendChild(calDayEl(prev, true));
+  }
+
+  // Días del mes actual
+  for (let i = 1; i <= lastDay.getDate(); i++) {
+    const day = new Date(d.getFullYear(), d.getMonth(), i);
+    grid.appendChild(calDayEl(day, false));
+  }
+}
+
+function calDayEl(date, otherMonth) {
+  const el = document.createElement('div');
+  el.className = 'cal-day' + (otherMonth ? ' other-month' : '');
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) el.classList.add('today');
+
+  const num = document.createElement('div');
+  num.className = 'cal-day-num';
+  num.textContent = date.getDate();
+  el.appendChild(num);
+
+  // Puntos de actividades
+  const dots = document.createElement('div');
+  dots.className = 'cal-dots';
+  const dateStr = date.toISOString().slice(0, 10);
+
+  const hasRide = STATE.activities.some(a => a.start_local && a.start_local.slice(0, 10) === dateStr);
+  if (hasRide) {
+    const d = document.createElement('div');
+    d.className = 'cal-dot ride'; dots.appendChild(d);
+  }
+
+  // Gym: lunes, miércoles, viernes
+  const dow = date.getDay();
+  if ([1, 3, 5].includes(dow) && !otherMonth) {
+    const d = document.createElement('div');
+    d.className = 'cal-dot gym'; dots.appendChild(d);
+  }
+
+  el.appendChild(dots);
+  return el;
+}
+
+// ═══════════════════════════════════════════════════
+// BREVETS
+// ═══════════════════════════════════════════════════
+function renderBrevetLadder() {
+  const ladder = document.getElementById('brevet-ladder');
+  ladder.innerHTML = '';
+  STATE.brevets.forEach((b, i) => {
+    const el = document.createElement('div');
+    el.className = 'brevet-step' + (b.done ? ' done' : '') + (!b.done && i === STATE.brevets.findIndex(x => !x.done) ? ' next' : '');
+    el.innerHTML = `
+      ${b.done ? '<div class="check-mark">✓</div>' : ''}
+      <div class="dist">${b.label}</div>
+      <div class="sublabel">${b.done ? 'Completado' : (b.date ? new Date(b.date).toLocaleDateString('es-CL', { month: 'short', year: 'numeric' }) : 'Pendiente')}</div>`;
+    el.onclick = () => {
+      STATE.brevets[i].done = !STATE.brevets[i].done;
+      saveState();
+      renderBrevetLadder();
+      updateCountdown();
+    };
+    ladder.appendChild(el);
+  });
+}
+
+function updateCountdown() {
+  const next = STATE.brevets.find(b => !b.done && b.date);
+  if (!next) {
+    document.getElementById('countdown-days').textContent = '—';
+    document.getElementById('countdown-event').textContent = 'Registra tu próximo brevet';
+    return;
+  }
+  const days = Math.ceil((new Date(next.date) - new Date()) / 86400000);
+  document.getElementById('countdown-days').textContent = Math.max(0, days);
+  document.getElementById('countdown-event').textContent = `Brevet ${next.label} · Audax Santiago`;
+}
+
+// ═══════════════════════════════════════════════════
+// ACP CALCULATOR
+// ═══════════════════════════════════════════════════
+function calcACP() {
+  const dist = parseFloat(document.getElementById('acp-dist').value) || 200;
+  const startTime = document.getElementById('acp-start').value || '07:00';
+
+  const [hh, mm] = startTime.split(':').map(Number);
+  const startMs = (hh * 60 + mm) * 60000;
+
+  // ACP rules: control intervals and speeds
+  const acpRules = [
+    { from: 0, to: 200, openKmh: 15, closeKmh: 34 },
+    { from: 200, to: 400, openKmh: 15, closeKmh: 32 },
+    { from: 400, to: 600, openKmh: 15, closeKmh: 30 },
+    { from: 600, to: 1000, openKmh: 11.428, closeKmh: 28 },
+  ];
+
+  // Determinar controles automáticos (cada ~100km)
+  const controls = [0];
+  let km = 0;
+  while (km < dist - 50) {
+    km = Math.min(km + Math.round(dist / Math.ceil(dist / 100)), dist);
+    controls.push(km);
+  }
+  if (controls[controls.length - 1] !== dist) controls.push(dist);
+
+  function getOpenClose(km) {
+    let openMins = 0, closeMins = 0;
+    let prevKm = 0;
+    for (const rule of acpRules) {
+      if (prevKm >= km) break;
+      const segEnd = Math.min(km, rule.to);
+      const segDist = segEnd - Math.max(prevKm, rule.from);
+      if (segDist <= 0) { prevKm = rule.to; continue; }
+      openMins += (segDist / rule.openKmh) * 60;
+      closeMins += (segDist / rule.closeKmh) * 60;
+      prevKm = segEnd;
+    }
+    return { openMins: Math.round(openMins), closeMins: Math.round(closeMins) };
+  }
+
+  function addMins(baseMs, mins) {
+    const total = baseMs + mins * 60000;
+    const h = Math.floor(total / 3600000) % 24;
+    const m = Math.floor((total % 3600000) / 60000);
+    const day = Math.floor(total / 86400000);
+    return `${day > 0 ? '+' + day + 'd ' : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  const result = document.getElementById('acp-result');
+  const table = document.getElementById('acp-table');
+  result.style.display = 'block';
+  table.innerHTML = `
+    <thead><tr>
+      <th>Control (km)</th>
+      <th>Apertura</th>
+      <th>Cierre</th>
+      <th>Ventana</th>
+    </tr></thead>
+    <tbody id="acp-tbody"></tbody>`;
+
+  const tbody = document.getElementById('acp-tbody');
+  controls.forEach(km => {
+    const { openMins, closeMins } = getOpenClose(km);
+    const ventana = closeMins - openMins;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="mono">${km} km</span></td>
+      <td><span class="mono" style="color:var(--green);">${km === 0 ? startTime : addMins(startMs, openMins)}</span></td>
+      <td><span class="mono" style="color:var(--red);">${km === 0 ? addMins(startMs, 60) : addMins(startMs, closeMins)}</span></td>
+      <td><span class="mono" style="color:var(--text2);">${km === 0 ? '—' : ventana + 'm'}</span></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// WEIGHT TRACKER
+// ═══════════════════════════════════════════════════
+function promptWeight() {
+  const w = parseFloat(prompt('Ingresa tu peso actual (kg):'));
+  if (!w || w < 50 || w > 200) return;
+  STATE.weightLog.push({ date: new Date().toISOString().slice(0, 10), w });
+  STATE.weightLog = STATE.weightLog.slice(-60);
+  saveState();
+  updateWeightTracker();
+  updateTopbar();
+  showToast('✅ Peso registrado');
+}
+
+function saveWeight() {
+  promptWeight();
+}
+
+function updateWeightTracker() {
+  const goal = 88, start = 98;
+  const current = STATE.weightLog.length > 0
+    ? STATE.weightLog[STATE.weightLog.length - 1].w : 98;
+  const progress = Math.max(0, Math.min(100, ((start - current) / (start - goal)) * 100));
+
+  document.getElementById('wkg-current').textContent =
+    `${(FTP / current).toFixed(2)} W/kg`;
+  document.getElementById('weight-progress-bar').style.width = progress + '%';
+
+  const log = document.getElementById('weight-log-list');
+  if (STATE.weightLog.length === 0) {
+    log.innerHTML = '<div style="font-size:12px;color:var(--text3);">Sin registros aún</div>';
+    return;
+  }
+  log.innerHTML = '';
+  const recent = STATE.weightLog.slice(-5).reverse();
+  recent.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'plan-row';
+    const wkg = (FTP / entry.w).toFixed(2);
+    el.innerHTML = `
+      <div class="plan-time" style="color:var(--text2);width:80px;">${entry.date.slice(5)}</div>
+      <div class="plan-detail">••••</div>
+      <div class="plan-kcal" style="color:var(--text2);">${wkg} W/kg</div>`;
+    log.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Configuración del Client ID de Strava
+// Para el deploy: agregar STRAVA_CLIENT_ID en las variables de entorno de Netlify
+// y este script lo leerá desde una endpoint de config
+(async () => {
+  try {
+    const r = await fetch('/api/strava/config');
+    if (r.ok) {
+      const data = await r.json();
+      if (data.client_id) window.STRAVA_CLIENT_ID = data.client_id;
+    }
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
