@@ -1106,7 +1106,7 @@ async function initRutas() {
 
   try {
     const acts = await stravaFetch('/athlete/activities', { per_page: 30, include_all_efforts: false });
-    STATE.activities = acts;
+    STATE.activities = acts.map(normalizeActivity);
     saveState();
     loader.style.display = 'none';
     connect.style.display = 'none';
@@ -1139,10 +1139,27 @@ function showDemoData() {
   calcLoad(demo);
 }
 
+function normalizeActivity(act) {
+  if (act.summary) return act;
+  return {
+    ...act,
+    summary: {
+      distance: act.distance || 0,
+      moving_time: act.moving_time || 0,
+      elevation_gain: act.total_elevation_gain || 0,
+      avg_speed: act.average_speed || 0,
+      total_calories: act.kilojoules ? Math.round(act.kilojoules * 0.239) : null,
+      average_watts: act.average_watts || null,
+    },
+    start_local: act.start_date_local || act.start_date || new Date().toISOString(),
+  };
+}
+
 function renderActivities(acts) {
   const list = document.getElementById('rutas-list');
   const count = document.getElementById('rutas-count');
-  const rides = acts.filter(a => a.sport_type === 'Ride' || a.sport_type === 'VirtualRide');
+  const normalized = acts.map(normalizeActivity);
+  const rides = normalized.filter(a => a.sport_type === 'Ride' || a.sport_type === 'VirtualRide');
   count.textContent = rides.length + ' rutas';
 
   list.innerHTML = '';
@@ -1265,9 +1282,8 @@ function getZone(watts) {
 function calcLoad(activities) {
   const now = Date.now();
   const day = 86400000;
-  // TSS por día de los últimos 42 días
   const tssMap = {};
-  activities.forEach(a => {
+  activities.map(normalizeActivity).forEach(a => {
     const t = new Date(a.start_local).getTime();
     const daysAgo = Math.floor((now - t) / day);
     if (daysAgo < 0 || daysAgo > 42) return;
