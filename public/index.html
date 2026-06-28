@@ -603,7 +603,7 @@ body.night .night-badge { display: inline; }
 
   <!-- TAB: CARGA -->
   <div class="tab" id="tab-carga">
-    <div class="section-hdr"><h2>Carga de Entrenamiento</h2></div>
+    <div class="section-hdr"><h2>Carga de Entrenamiento <span style="font-size:11px;font-weight:400;color:var(--text2);">· sin commutes</span></h2></div>
 
     <div class="card">
       <div class="card-title orange">ACWR · Ratio Aguda/Crónica</div>
@@ -640,7 +640,7 @@ body.night .night-badge { display: inline; }
     </div>
 
     <div class="card">
-      <div class="card-title">CARGA SEMANAL · TSS estimado</div>
+      <div class="card-title">CARGA SEMANAL · TSS entrenamiento <span style="font-size:9px;font-weight:400;color:var(--text2);text-transform:none;">(commutes excluidos)</span></div>
       <div class="spark-bar" id="spark-bar"></div>
       <div style="display:flex;justify-content:space-between;margin-top:4px;">
         <span style="font-size:9px;color:var(--text3);" id="spark-start">—</span>
@@ -1591,11 +1591,17 @@ function estimateZoneTimes(avgW, movingTime) {
   });
 }
 
+function isCommute(a) {
+  if (a.commute) return true;
+  const km = ((a.summary || {}).distance || 0) / 1000;
+  return km > 0 && km < 20 && a.type !== 'VirtualRide';
+}
+
 function calcLoad(activities) {
   const now = Date.now();
   const day = 86400000;
   const tssMap = {};
-  activities.map(normalizeActivity).forEach(a => {
+  activities.map(normalizeActivity).filter(a => !isCommute(a)).forEach(a => {
     const t = new Date(a.start_local).getTime();
     const daysAgo = Math.floor((now - t) / day);
     if (daysAgo < 0 || daysAgo > 42) return;
