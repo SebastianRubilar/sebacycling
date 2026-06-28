@@ -587,6 +587,7 @@ body.night .night-badge { display: inline; }
         <h2>Mis Rutas</h2>
         <span class="badge" id="rutas-count">—</span>
       </div>
+      <div id="weekly-summary" style="display:none;"></div>
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
         <button class="filter-btn active" onclick="setFilter('all',this)">Todas</button>
         <button class="filter-btn" onclick="setFilter('commute',this)">🚴 Commuting</button>
@@ -1237,6 +1238,7 @@ async function initRutas() {
       connect.style.display = 'none';
       content.style.display = 'block';
       renderActivities(STATE.activities);
+      renderWeeklySummary(STATE.activities);
     }
     return;
   }
@@ -1246,6 +1248,7 @@ async function initRutas() {
     loader.style.display = 'none';
     content.style.display = 'block';
     renderActivities(STATE.activities.map(normalizeActivity));
+    renderWeeklySummary(STATE.activities);
   }
 
   try {
@@ -1256,16 +1259,16 @@ async function initRutas() {
     connect.style.display = 'none';
     content.style.display = 'block';
     renderActivities(acts);
-    // Con actividades, calcular carga
+    renderWeeklySummary(acts);
     calcLoad(acts);
   } catch (e) {
     loader.style.display = 'none';
     if (STATE.activities.length === 0) {
       connect.style.display = 'block';
     } else {
-      // Mostrar cache aunque haya fallado el refresh
       content.style.display = 'block';
       renderActivities(STATE.activities.map(normalizeActivity));
+      renderWeeklySummary(STATE.activities);
       calcLoad(STATE.activities);
     }
   }
@@ -1285,6 +1288,7 @@ function showDemoData() {
   ];
   STATE.activities = demo;
   renderActivities(demo);
+  renderWeeklySummary(demo);
   calcLoad(demo);
 }
 
@@ -1624,6 +1628,83 @@ function calcLoad(activities) {
 
   // Spark bar (8 semanas)
   renderSparkBar(tssMap);
+}
+
+function renderWeeklySummary(activities) {
+  const el = document.getElementById('weekly-summary');
+  if (!el) return;
+  const now = Date.now();
+  const day = 86400000;
+
+  function weekStats(acts, offsetDays) {
+    const start = offsetDays * day;
+    const end = (offsetDays + 7) * day;
+    let km = 0, secs = 0, tss = 0, elev = 0, count = 0;
+    acts.forEach(a => {
+      const age = now - new Date(a.start_local).getTime();
+      if (age < start || age >= end) return;
+      const sum = a.summary || {};
+      km   += (sum.distance || 0) / 1000;
+      secs += sum.moving_time || 0;
+      elev += sum.elevation_gain || 0;
+      tss  += estimateTSS(sum.moving_time || 0, (sum.avg_speed || 0) * 3.6, sum.elevation_gain || 0);
+      count++;
+    });
+    return { km, secs, tss: Math.round(tss), elev: Math.round(elev), count };
+  }
+
+  const norm = activities.map(normalizeActivity).filter(Boolean);
+  const cur  = weekStats(norm, 0);
+  const prev = weekStats(norm, 7);
+
+  if (cur.count === 0) { el.style.display = 'none'; return; }
+
+  function delta(c, p) {
+    if (p === 0) return '';
+    const pct = Math.round((c - p) / p * 100);
+    const up = pct >= 0;
+    return `<div style="font-size:10px;color:${up ? 'var(--green)' : 'var(--red)'};">${up ? '↑' : '↓'} ${Math.abs(pct)}%</div>`;
+  }
+
+  const hrs  = Math.floor(cur.secs / 3600);
+  const mins = Math.floor((cur.secs % 3600) / 60);
+  const timeStr = hrs > 0 ? `${hrs}h${mins > 0 ? mins + 'm' : ''}` : `${mins}m`;
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-title orange">RESUMEN DE LA SEMANA</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;">
+        <div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;">${cur.km.toFixed(1)}</div>
+          <div style="font-size:9px;color:var(--text2);">km</div>
+          ${delta(cur.km, prev.km)}
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;">${timeStr}</div>
+          <div style="font-size:9px;color:var(--text2);">tiempo</div>
+          ${delta(cur.secs, prev.secs)}
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;">${cur.tss}</div>
+          <div style="font-size:9px;color:var(--text2);">TSS</div>
+          ${delta(cur.tss, prev.tss)}
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;">${cur.elev}</div>
+          <div style="font-size:9px;color:var(--text2);">m desnivel</div>
+          ${delta(cur.elev, prev.elev)}
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:17px;font-weight:700;">${cur.count}</div>
+          <div style="font-size:9px;color:var(--text2);">actividades</div>
+          ${delta(cur.count, prev.count)}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:9px;color:var(--text3);line-height:1.4;">vs semana<br>anterior</div>
+        </div>
+      </div>
+    </div>`;
 }
 
 function updateACWR(val) {
