@@ -2160,8 +2160,18 @@ window.showTab = function(name,btn){
 };
 
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          // Nuevo SW instalado y listo: si ya había uno activo, recargar
+          if (newSW.state === 'activated' && navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 
