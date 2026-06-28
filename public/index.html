@@ -1429,6 +1429,29 @@ function showActivityDetail(act) {
       </div>
     </div>
 
+    <!-- ZONAS DE POTENCIA -->
+    ${(function() {
+      const zoneTimes = estimateZoneTimes(avgW, d.moving_time || 0);
+      const maxSec = Math.max(...zoneTimes);
+      if (maxSec === 0) return '';
+      const rows = POWER_ZONES.map((z, i) => {
+        const mins = Math.round(zoneTimes[i] / 60);
+        const pct = (zoneTimes[i] / maxSec * 100).toFixed(1);
+        return \`<div style="display:flex;align-items:center;gap:7px;margin-bottom:5px;">
+          <div style="width:3px;height:26px;border-radius:2px;background:\${z.color};flex-shrink:0;"></div>
+          <div style="width:80px;flex-shrink:0;"><span style="font-size:10px;font-weight:700;">\${z.name}</span> <span style="font-size:9px;color:var(--text2);">\${z.label}</span></div>
+          <div style="flex:1;background:var(--border);border-radius:3px;height:12px;overflow:hidden;">
+            <div style="width:\${pct}%;height:100%;background:\${z.color};border-radius:3px;opacity:0.85;"></div>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;width:26px;text-align:right;flex-shrink:0;color:\${mins>0?'inherit':'var(--text3)'};">\${mins>0?mins+'m':'—'}</div>
+        </div>\`;
+      }).join('');
+      return \`<div class="card" style="margin-bottom:10px;">
+        <div class="card-title orange">ZONAS DE POTENCIA <span style="font-size:9px;font-weight:400;color:var(--text2);text-transform:none;">(estimado)</span></div>
+        \${rows}
+      </div>\`;
+    })()}
+
     <!-- CONDICIONES -->
     <div class="card" style="margin-bottom:10px;">
       <div class="card-title">CONDICIONES</div>
@@ -1545,6 +1568,27 @@ function estimateWatts(avgKmh, elevGain, movingTime) {
 
 function getZone(watts) {
   return POWER_ZONES.find(z => watts >= z.min && watts <= z.max) || POWER_ZONES[6];
+}
+
+function estimateZoneTimes(avgW, movingTime) {
+  const std = 40;
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1;
+    x = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429*t - 1.453152027)*t + 1.421413741)*t - 0.284496736)*t + 0.254829592)*t) * Math.exp(-x*x);
+    return sign * y;
+  }
+  function normalCDF(x) {
+    if (x === -Infinity) return 0;
+    if (x === Infinity) return 1;
+    return 0.5 * (1 + erf((x - avgW) / (std * Math.SQRT2)));
+  }
+  return POWER_ZONES.map(z => {
+    const lo = z.min === 0 ? -Infinity : z.min;
+    const hi = z.max === 9999 ? Infinity : z.max + 1;
+    return Math.round((normalCDF(hi) - normalCDF(lo)) * movingTime);
+  });
 }
 
 function calcLoad(activities) {
