@@ -1290,24 +1290,36 @@ function showDemoData() {
 
 function normalizeActivity(act) {
   if (!act) return null;
-  // Si ya tiene summary bien formado, devolver tal cual
-  if (act.summary && act.summary.distance !== undefined) return act;
-  // Normalizar desde estructura real de API Strava
-  const normalized = {
+  // Construir summary desde campos directos de Strava si no existe o está incompleto
+  const summary = act.summary && act.summary.distance !== undefined ? act.summary : {
+    distance: act.distance || 0,
+    moving_time: act.moving_time || 0,
+    elevation_gain: act.total_elevation_gain || 0,
+    avg_speed: act.average_speed || 0,
+    total_calories: act.kilojoules ? Math.round(act.kilojoules * 0.239) : (act.calories || null),
+    average_watts: act.average_watts || null,
+  };
+  // Siempre retornar objeto completo con TODOS los campos de Strava
+  return {
     id: act.id,
     name: act.name || 'Sin nombre',
     sport_type: act.sport_type || act.type || 'Ride',
     start_local: act.start_date_local || act.start_local || act.start_date || new Date().toISOString(),
-    summary: {
-      distance: act.distance || 0,
-      moving_time: act.moving_time || 0,
-      elevation_gain: act.total_elevation_gain || 0,
-      avg_speed: act.average_speed || 0,
-      total_calories: act.kilojoules ? Math.round(act.kilojoules * 0.239) : (act.calories || null),
-      average_watts: act.average_watts || null,
-    },
+    commute: act.commute || false,
+    summary: summary,
+    map: act.map || null,
+    average_watts: act.average_watts || null,
+    average_heartrate: act.average_heartrate || null,
+    max_heartrate: act.max_heartrate || null,
+    has_heartrate: act.has_heartrate || false,
+    average_temp: act.average_temp !== undefined ? act.average_temp : null,
+    elev_high: act.elev_high || null,
+    elev_low: act.elev_low || null,
+    suffer_score: act.suffer_score || null,
+    max_speed: act.max_speed || null,
+    device_name: act.device_name || null,
+    start_latlng: act.start_latlng || null,
   };
-  return normalized;
 }
 
 function renderActivities(acts) {
