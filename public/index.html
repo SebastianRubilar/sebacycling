@@ -1213,36 +1213,136 @@ function showActivityDetail(act) {
   const h = Math.floor(d.moving_time / 3600);
   const m = Math.floor((d.moving_time % 3600) / 60);
   const avgKmh = (d.avg_speed * 3.6).toFixed(1);
+  const maxKmh = act.max_speed ? (act.max_speed * 3.6).toFixed(1) : '—';
   const tssEst = estimateTSS(d.moving_time, d.avg_speed * 3.6, d.elevation_gain);
-
-  // Zona dominante
-  const avgW = d.average_watts || estimateWatts(d.avg_speed * 3.6, d.elevation_gain, d.moving_time);
+  const avgW = d.average_watts || act.average_watts || estimateWatts(d.avg_speed * 3.6, d.elevation_gain, d.moving_time);
   const zone = getZone(avgW);
+  const polyline = act.map && act.map.summary_polyline ? act.map.summary_polyline : null;
+  const hasHR = act.has_heartrate && act.average_heartrate;
+  const elevHigh = act.elev_high ? Math.round(act.elev_high) : '—';
+  const elevLow = act.elev_low ? Math.round(act.elev_low) : '—';
+  const temp = act.average_temp !== undefined && act.average_temp !== null ? act.average_temp + '°C' : '—';
+  const suffer = act.suffer_score || '—';
+  const date = new Date(act.start_local).toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
   body.innerHTML = `
-    <div class="stat-grid">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">${date}</div>
+
+    <!-- MAPA -->
+    ${polyline ? `<div id="act-map" style="height:200px;border-radius:10px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border);"></div>` : ''}
+
+    <!-- STATS PRINCIPALES -->
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px;">
       <div class="stat-box"><span class="val">${km}</span><span class="lbl">km</span></div>
       <div class="stat-box"><span class="val">${h}h ${m}m</span><span class="lbl">tiempo</span></div>
-      <div class="stat-box"><span class="val">${d.elevation_gain}</span><span class="lbl">m desnivel</span></div>
+      <div class="stat-box"><span class="val">${d.elevation_gain}m</span><span class="lbl">desnivel</span></div>
       <div class="stat-box"><span class="val">${avgKmh}</span><span class="lbl">km/h media</span></div>
+      <div class="stat-box"><span class="val">${maxKmh}</span><span class="lbl">km/h max</span></div>
       <div class="stat-box"><span class="val">${d.total_calories || '—'}</span><span class="lbl">kcal</span></div>
-      <div class="stat-box"><span class="val" style="color:${zone.color}">${tssEst}</span><span class="lbl">TSS est.</span></div>
     </div>
+
+    <!-- POTENCIA Y FC -->
     <div class="card" style="margin-bottom:10px;">
-      <div class="card-title">ZONA DOMINANTE ESTIMADA</div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:40px;height:40px;border-radius:8px;background:${zone.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#000;">${zone.name}</div>
+      <div class="card-title orange">POTENCIA & ESFUERZO</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div>
-          <div style="font-weight:600;">${zone.label}</div>
-          <div style="font-size:12px;color:var(--text2);">${zone.min}–${zone.max === 9999 ? '∞' : zone.max}W estimados</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:${zone.color};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#000;">${zone.name}</div>
+            <div><div style="font-size:12px;font-weight:600;">${zone.label}</div><div style="font-size:10px;color:var(--text2);">${Math.round(avgW)}W promedio</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);">TSS estimado: <span style="color:${zone.color};font-weight:600;font-family:var(--mono);">${tssEst}</span></div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">Suffer score: <span style="font-weight:600;font-family:var(--mono);">${suffer}</span></div>
+        </div>
+        <div>
+          ${hasHR ? `
+          <div style="margin-bottom:6px;">
+            <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">FC Media</div>
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--red);">${Math.round(act.average_heartrate)} <span style="font-size:11px;font-weight:400;">bpm</span></div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;">FC Máx</div>
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--red);">${Math.round(act.max_heartrate)} <span style="font-size:11px;font-weight:400;">bpm</span></div>
+          </div>` : `<div style="font-size:11px;color:var(--text3);">Sin datos de FC</div>`}
         </div>
       </div>
     </div>
-    ${act.reduced_polyline ? `<div class="map-placeholder">🗺️ Mapa disponible — conecta con API de mapas para visualizar</div>` : ''}
-    <div class="card">
-      <div class="card-title">SPLITS ESTIMADOS</div>
-      ${renderSplits(d, km)}
+
+    <!-- CONDICIONES -->
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-title">CONDICIONES</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center;">
+        <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">TEMP</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;">${temp}</div></div>
+        <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">ALT MAX</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;">${elevHigh}m</div></div>
+        <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">ALT MIN</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;">${elevLow}m</div></div>
+        <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">DISPOSITIVO</div><div style="font-size:10px;font-weight:600;">${act.device_name || '—'}</div></div>
+      </div>
     </div>`;
+
+  // Cargar mapa con Leaflet si hay polyline
+  if (polyline) {
+    loadLeafletMap(polyline, act.start_latlng);
+  }
+}
+
+function loadLeafletMap(polyline, startLatLng) {
+  // Cargar Leaflet dinámicamente si no está cargado
+  if (!window.L) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => renderMap(polyline, startLatLng);
+    document.head.appendChild(script);
+  } else {
+    renderMap(polyline, startLatLng);
+  }
+}
+
+function decodePolyline(encoded) {
+  let index = 0, lat = 0, lng = 0;
+  const coords = [];
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    coords.push([lat / 1e5, lng / 1e5]);
+  }
+  return coords;
+}
+
+function renderMap(polyline, startLatLng) {
+  const coords = decodePolyline(polyline);
+  if (!coords.length) return;
+
+  // Destruir mapa previo si existe
+  const container = document.getElementById('act-map');
+  if (!container) return;
+  if (container._leaflet_id) {
+    container._leaflet_id = null;
+    container.innerHTML = '';
+  }
+
+  const map = L.map('act-map', { zoomControl: true, scrollWheelZoom: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 17,
+  }).addTo(map);
+
+  const route = L.polyline(coords, { color: '#FC4C02', weight: 3, opacity: 0.9 }).addTo(map);
+
+  // Marcador de inicio
+  if (coords.length > 0) {
+    L.circleMarker(coords[0], { radius: 7, fillColor: '#00E676', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+    L.circleMarker(coords[coords.length - 1], { radius: 7, fillColor: '#FF1744', color: '#fff', weight: 2, fillOpacity: 1 }).addTo(map);
+  }
+
+  map.fitBounds(route.getBounds(), { padding: [16, 16] });
 }
 
 function renderSplits(d, totalKm) {
