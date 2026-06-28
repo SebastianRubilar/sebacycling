@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/api/ai/analyze"
+  to = "/.netlify/functions/ai-analyze"
+  status = 200
+
+[[redirects]]
   from = "/api/strava/*"
   to = "/.netlify/functions/strava-proxy/:splat"
   status = 200

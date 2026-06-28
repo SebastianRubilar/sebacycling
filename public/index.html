@@ -1085,6 +1085,7 @@ let STATE = {
   activities: [], currentWeek: 1, currentSession: 'A',
   currentMonth: new Date(), weightLog: [], brevets: [...BREVETS],
   gymDone: {}, // { 'w1-A-0': true }
+  aiAnalysis: {}, // { activityId: 'texto del análisis' }
 };
 
 function saveState() {
@@ -1092,6 +1093,7 @@ function saveState() {
     accessToken: STATE.accessToken, refreshToken: STATE.refreshToken,
     expiresAt: STATE.expiresAt, weightLog: STATE.weightLog,
     brevets: STATE.brevets, gymDone: STATE.gymDone,
+    aiAnalysis: STATE.aiAnalysis,
     activities_cache: STATE.activities.slice(0, 30).map(a => ({
       id: a.id, name: a.name, start_local: a.start_local,
       sport_type: a.sport_type || a.type,
@@ -1125,6 +1127,7 @@ function loadState() {
     STATE.brevets = s.brevets || [...BREVETS];
     STATE.gymDone = s.gymDone || {};
     if (s.activities_cache) STATE.activities = s.activities_cache;
+    if (s.aiAnalysis) STATE.aiAnalysis = s.aiAnalysis;
   } catch(e) {}
 }
 
@@ -1465,11 +1468,69 @@ function showActivityDetail(act) {
         <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">ALT MIN</div><div style="font-family:var(--mono);font-size:14px;font-weight:600;">${elevLow}m</div></div>
         <div><div style="font-size:9px;color:var(--text2);margin-bottom:3px;">DISPOSITIVO</div><div style="font-size:10px;font-weight:600;">${act.device_name || '—'}</div></div>
       </div>
-    </div>`;
+    </div>
+
+    <!-- ANÁLISIS IA -->
+    ${STATE.aiAnalysis[act.id] ? `
+    <div id="ai-card-${act.id}" class="card" style="margin-bottom:10px;background:var(--surface2);">
+      <div class="card-title" style="color:var(--text);">🤖 ANÁLISIS DEL COACH</div>
+      <p style="font-size:12px;line-height:1.6;color:var(--text);margin:0;">${STATE.aiAnalysis[act.id]}</p>
+    </div>` : `
+    <div id="ai-card-${act.id}"></div>
+    <button id="ai-btn-${act.id}" class="btn-orange" style="width:100%;margin-bottom:10px;"
+      onclick="analyzeWithAI('${act.id}', this)">🤖 Analizar con IA</button>`}`;
 
   // Cargar mapa con Leaflet si hay polyline
   if (polyline) {
     loadLeafletMap(polyline, act.start_latlng);
+  }
+}
+
+async function analyzeWithAI(actId, btn) {
+  if (STATE.aiAnalysis[actId]) return;
+  btn.disabled = true;
+  btn.textContent = 'Analizando...';
+
+  const act = STATE.activities.find(a => String(a.id) === String(actId));
+  const d = (act && act.summary) || {};
+  const activityData = {
+    name: act?.name,
+    date: act?.start_local,
+    km: ((d.distance || 0) / 1000).toFixed(1),
+    moving_time_min: Math.round((d.moving_time || 0) / 60),
+    avg_kmh: ((d.avg_speed || 0) * 3.6).toFixed(1),
+    elevation_gain: d.elevation_gain || 0,
+    avg_watts: d.average_watts || act?.average_watts || null,
+    avg_hr: act?.average_heartrate || null,
+    calories: d.total_calories || null,
+    suffer_score: act?.suffer_score || null,
+  };
+
+  try {
+    const res = await fetch('/api/ai/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activityData }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.analysis) throw new Error(data.error || 'Sin respuesta');
+
+    STATE.aiAnalysis[actId] = data.analysis;
+    saveState();
+
+    const card = document.getElementById(`ai-card-${actId}`);
+    if (card) {
+      card.outerHTML = `<div id="ai-card-${actId}" class="card" style="margin-bottom:10px;background:var(--surface2);">
+        <div class="card-title" style="color:var(--text);">🤖 ANÁLISIS DEL COACH</div>
+        <p style="font-size:12px;line-height:1.6;color:var(--text);margin:0;">${data.analysis}</p>
+      </div>`;
+    }
+    btn.style.display = 'none';
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '🤖 Reintentar análisis';
+    const card = document.getElementById(`ai-card-${actId}`);
+    if (card) card.innerHTML = `<div style="font-size:11px;color:var(--red);padding:6px 0;">Error: ${err.message}</div>`;
   }
 }
 
