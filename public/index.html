@@ -6,6 +6,11 @@
 <title>SebaCycling</title>
 <meta name="theme-color" content="#0D0D0D">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -448,6 +453,12 @@ body {
 .progress-bar-wrap { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
 .progress-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
 
+.star-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 24px; color: var(--border); transition: color 0.15s; padding: 2px;
+}
+.star-btn.active { color: var(--yellow); }
+
 /* ── LOADER ── */
 .loader {
   display: flex; align-items: center; justify-content: center;
@@ -472,6 +483,14 @@ body {
 .pill-yellow { background: rgba(255,214,0,0.15); color: var(--yellow); }
 .pill-blue { background: rgba(68,138,255,0.15); color: var(--blue); }
 
+.filter-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 600;
+  cursor: pointer; color: var(--text2); font-family: var(--font);
+  transition: all 0.15s;
+}
+.filter-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
 /* ── TOAST ── */
 .toast {
   position: fixed; bottom: calc(72px + var(--safe-bottom) + 8px); left: 12px; right: 12px;
@@ -482,6 +501,24 @@ body {
   transition: all 0.25s; pointer-events: none;
 }
 .toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── NIGHT MODE ── */
+body.night {
+  --bg: #050505;
+  --surface: #0D0D0D;
+  --surface2: #141414;
+  --surface3: #1A1A1A;
+  --border: #222222;
+  --text: #D0D0D0;
+  --text2: #666;
+  --text3: #3A3A3A;
+}
+.night-badge {
+  display: none;
+  font-size: 9px; color: var(--blue); font-family: var(--mono);
+  margin-left: 8px; vertical-align: middle;
+}
+body.night .night-badge { display: inline; }
 
 /* ── RESPONSIVE ── */
 @media (min-width: 500px) {
@@ -550,6 +587,12 @@ body {
         <h2>Mis Rutas</h2>
         <span class="badge" id="rutas-count">—</span>
       </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+        <button class="filter-btn active" onclick="setFilter('all',this)">Todas</button>
+        <button class="filter-btn" onclick="setFilter('commute',this)">🚴 Commuting</button>
+        <button class="filter-btn" onclick="setFilter('long',this)">⛰️ Salidas largas</button>
+        <button class="filter-btn" onclick="setFilter('virtual',this)">🖥️ Virtual</button>
+      </div>
       <div id="rutas-list"></div>
     </div>
     <div id="rutas-loader" class="loader">
@@ -608,6 +651,32 @@ body {
     <div class="card">
       <div class="card-title green">ZONAS DE POTENCIA · FTP 298W</div>
       <div id="zones-list"></div>
+    </div>
+
+    <!-- HRV + SUEÑO -->
+    <div class="card">
+      <div class="card-title" style="color:var(--red);">BIENESTAR MATUTINO · Registro diario</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">HRV (ms)</div>
+          <input type="number" id="hrv-input" placeholder="ej: 52" min="20" max="150"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:var(--mono);font-size:16px;outline:none;">
+          <div style="font-size:9px;color:var(--text3);margin-top:3px;">Medir con Polar/Garmin al despertar</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Calidad de sueño</div>
+          <div style="display:flex;gap:4px;" id="sleep-stars">
+            <button class="star-btn" onclick="setSleep(1)">★</button>
+            <button class="star-btn" onclick="setSleep(2)">★</button>
+            <button class="star-btn" onclick="setSleep(3)">★</button>
+            <button class="star-btn" onclick="setSleep(4)">★</button>
+            <button class="star-btn" onclick="setSleep(5)">★</button>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-top:3px;" id="sleep-label">Sin registrar</div>
+        </div>
+      </div>
+      <button class="btn-calc" onclick="saveBienestar()">Registrar hoy</button>
+      <div id="bienestar-history" style="margin-top:10px;"></div>
     </div>
   </div>
 
@@ -779,6 +848,62 @@ body {
     </div>
   </div>
 
+  <!-- TAB: PERFIL -->
+  <div class="tab" id="tab-perfil">
+    <div class="section-hdr"><h2>Mi Perfil</h2></div>
+
+    <!-- Stats globales -->
+    <div class="card" id="perfil-stats-card">
+      <div class="card-title orange">STATS GLOBALES · Strava</div>
+      <div id="perfil-stats"><div style="font-size:12px;color:var(--text2);">Cargando…</div></div>
+    </div>
+
+    <!-- W/kg y peso -->
+    <div class="card">
+      <div class="card-title green">PROGRESO W/kg</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">
+        <div style="text-align:center;">
+          <div style="font-family:var(--mono);font-size:32px;font-weight:900;color:var(--orange);" id="perfil-wkg-now">3.04</div>
+          <div style="font-size:10px;color:var(--text2);">Actual</div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">→ meta 88kg</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="perfil-weight-bar" style="background:var(--orange);width:0%;"></div></div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px;" id="perfil-kg-to-go">— kg para la meta</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:var(--mono);font-size:32px;font-weight:900;color:var(--green);">3.41</div>
+          <div style="font-size:10px;color:var(--text2);">Meta</div>
+        </div>
+      </div>
+      <!-- Gráfico de peso -->
+      <div class="card-title" style="margin-bottom:6px;">HISTORIAL DE PESO</div>
+      <div id="weight-chart" style="height:80px;display:flex;align-items:flex-end;gap:3px;"></div>
+      <div style="font-size:9px;color:var(--text3);margin-top:4px;text-align:center;">Línea punteada = meta 88kg</div>
+    </div>
+
+    <!-- Lista de compras -->
+    <div class="card">
+      <div class="card-title">LISTA DE COMPRAS SEMANAL</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Basada en tu plan diario de entrenamiento</div>
+      <div id="compras-list"></div>
+      <button class="btn-calc" style="margin-top:10px;" onclick="copiarCompras()">📋 Copiar lista</button>
+    </div>
+
+    <!-- Conexión Strava -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">CUENTA</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:20px;">🦕</div>
+        <div>
+          <div style="font-weight:600;font-size:14px;">Sebastian Rubilar</div>
+          <div style="font-size:11px;color:var(--green);">✓ Strava conectado</div>
+        </div>
+      </div>
+      <button onclick="desconectarStrava()" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 16px;font-size:12px;color:var(--text2);cursor:pointer;width:100%;font-family:var(--font);">Desconectar Strava</button>
+    </div>
+  </div>
+
 </div><!-- /content -->
 
 <!-- DETAIL PANEL (Ruta) -->
@@ -815,6 +940,10 @@ body {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     Cal
   </button>
+  <button class="nav-btn" onclick="showTab('perfil',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Perfil
+  </button>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -850,22 +979,22 @@ const GYM_PLAN = {
   1: {
     obs: 'Semana de adaptación. Enfoque en técnica y rangos de movimiento. Cargas bajas.',
     A: { name: 'Lunes – Tren inferior', exercises: [
-      { name: 'Sentadilla goblet', detail: '3×12 reps', notes: 'Peso moderado, foco en profundidad' },
-      { name: 'Zancada caminando', detail: '3×10 por lado', notes: 'Mantén torso erecto' },
-      { name: 'Puente de glúteos', detail: '3×15', notes: 'Pausa 2s arriba' },
-      { name: 'Plancha abdominal', detail: '3×30s', notes: '' },
+      { name: 'Sentadilla goblet', detail: '3×12 reps', notes: 'Peso moderado, foco en profundidad', tip: 'Sostén la pesa frente al pecho, pies a ancho de hombros, baja hasta que los muslos queden paralelos al suelo.', video: 'https://www.youtube.com/watch?v=MeIiIdhvXT4' },
+      { name: 'Zancada caminando', detail: '3×10 por lado', notes: 'Mantén torso erecto', tip: 'Da un paso largo hacia adelante, baja la rodilla trasera sin tocar el suelo, empuja con el talón delantero para volver.', video: 'https://www.youtube.com/watch?v=L8fvypPrzzs' },
+      { name: 'Puente de glúteos', detail: '3×15', notes: 'Pausa 2s arriba', tip: 'Acostado boca arriba, pies apoyados, empuja las caderas hacia arriba apretando glúteos. Mantén 2 segundos en la cima.', video: 'https://www.youtube.com/watch?v=wPM8icPu6H8' },
+      { name: 'Plancha abdominal', detail: '3×30s', notes: '', tip: 'Cuerpo recto de cabeza a talones, codos bajo los hombros, activa el core sin dejar caer las caderas.', video: 'https://www.youtube.com/watch?v=pSHjTRCQxIw' },
     ]},
     B: { name: 'Miércoles – Tren superior', exercises: [
-      { name: 'Press de hombros con mancuernas', detail: '3×12', notes: '' },
-      { name: 'Remo con mancuerna', detail: '3×12 por lado', notes: 'Codo cerca del cuerpo' },
-      { name: 'Flexiones', detail: '3×max', notes: 'Descanso 90s entre series' },
-      { name: 'Curl de bíceps', detail: '3×12', notes: '' },
+      { name: 'Press de hombros con mancuernas', detail: '3×12', notes: '', tip: 'Sentado o de pie, mancuernas a la altura de los hombros, empuja hacia arriba sin arquear la espalda baja.', video: 'https://www.youtube.com/watch?v=qEwKCR5JCog' },
+      { name: 'Remo con mancuerna', detail: '3×12 por lado', notes: 'Codo cerca del cuerpo', tip: 'Apoya una mano y rodilla en el banco, tira la mancuerna hacia la cadera manteniendo el codo pegado al cuerpo.', video: 'https://www.youtube.com/watch?v=roCP6wCXPqo' },
+      { name: 'Flexiones', detail: '3×max', notes: 'Descanso 90s entre series', tip: 'Manos a ancho de hombros, cuerpo recto, baja hasta casi tocar el suelo y empuja. Modifica apoyando las rodillas si es necesario.', video: 'https://www.youtube.com/watch?v=IODxDxX7oi4' },
+      { name: 'Curl de bíceps', detail: '3×12', notes: '', tip: 'De pie, codos fijos al costado del cuerpo, sube las mancuernas girando la muñeca. Baja de forma controlada.', video: 'https://www.youtube.com/watch?v=ykJmrZ5v0Oo' },
     ]},
     C: { name: 'Viernes – Fuerza funcional', exercises: [
-      { name: 'Peso muerto rumano', detail: '3×10', notes: 'Columna neutra siempre' },
-      { name: 'Step-up al cajón', detail: '3×10 por lado', notes: 'Impulso desde el talón' },
-      { name: 'Core: Pallof press', detail: '3×10 por lado', notes: '' },
-      { name: 'Estabilidad unipodal', detail: '3×30s por lado', notes: '' },
+      { name: 'Peso muerto rumano', detail: '3×10', notes: 'Columna neutra siempre', tip: 'Pies a ancho de caderas, baja la barra deslizándola por las piernas manteniendo la espalda recta, siente el estiramiento en isquiotibiales.', video: 'https://www.youtube.com/watch?v=JCXUYuzwNrM' },
+      { name: 'Step-up al cajón', detail: '3×10 por lado', notes: 'Impulso desde el talón', tip: 'Sube al cajón con un pie, empuja desde el talón para subir completamente. Baja controlado. No uses impulso de la pierna trasera.', video: 'https://www.youtube.com/watch?v=dQqApCGd5Ss' },
+      { name: 'Core: Pallof press', detail: '3×10 por lado', notes: '', tip: 'De pie lateral a la polea, sostén el cable al pecho y extiende los brazos al frente. Resiste la rotación. Mantén 1s extendido.', video: 'https://www.youtube.com/watch?v=AH_QZLm_0-s' },
+      { name: 'Estabilidad unipodal', detail: '3×30s por lado', notes: '', tip: 'Párate en un pie, rodilla ligeramente flexionada. Para más dificultad cierra los ojos o para en superficie inestable.', video: 'https://www.youtube.com/watch?v=18rTjJaVqPo' },
     ]},
     D: { name: 'Sábado – Movilidad y core', exercises: [
       { name: 'Foam rolling', detail: '10 min', notes: 'IT band, cuádriceps, pantorrilla' },
@@ -895,54 +1024,54 @@ const GYM_PLAN = {
       { name: 'Plancha lateral', detail: '3×30s por lado', notes: '' },
     ]},
     D: { name: 'Sábado – Recuperación activa', exercises: [
-      { name: 'Stretching completo', detail: '20 min', notes: '' },
-      { name: 'Rodillo de espuma', detail: '10 min', notes: '' },
-      { name: 'Caminata suave', detail: '20–30 min', notes: 'FC < 120 bpm' },
+      { name: 'Stretching completo', detail: '20 min', notes: '', tip: 'Estira cuádriceps, isquiotibiales, cadera y hombros. Mantén cada posición 30-40 segundos sin rebotar.', video: 'https://www.youtube.com/watch?v=sTxC3J3gQEU' },
+      { name: 'Rodillo de espuma', detail: '10 min', notes: '', tip: 'Rueda lentamente sobre IT band, cuádriceps y pantorrilla. Detente 20-30s en los puntos de tensión.', video: 'https://www.youtube.com/watch?v=vthMCtgVtFw' },
+      { name: 'Caminata suave', detail: '20–30 min', notes: 'FC < 120 bpm', tip: 'Ritmo muy tranquilo, conversacional. El objetivo es activar circulación y recuperación activa, no cardio.', video: null },
     ]},
   },
   3: {
     obs: 'Semana de pico. Máxima intensidad con series de 6–8 repeticiones. Descanso completo el domingo.',
     A: { name: 'Lunes – Fuerza máxima piernas', exercises: [
-      { name: 'Sentadilla', detail: '4×6 pesado', notes: 'RPE 8–9' },
-      { name: 'Peso muerto', detail: '4×6', notes: 'Máximo técnico' },
-      { name: 'Zancada con mancuernas', detail: '3×8 por lado', notes: '' },
-      { name: 'Extensión de cadera con cable', detail: '3×12', notes: '' },
+      { name: 'Sentadilla', detail: '4×6 pesado', notes: 'RPE 8–9', tip: 'Barra sobre los trapecios, espalda recta, rodillas alineadas con los pies. Baja controlado, sube explosivo. RPE 8-9 significa que podrías hacer 1-2 reps más.', video: 'https://www.youtube.com/watch?v=ultWZbUMPL8' },
+      { name: 'Peso muerto', detail: '4×6', notes: 'Máximo técnico', tip: 'Barra sobre el empeine, agarre firme, espalda neutral, empuja el suelo con los pies. La barra sube pegada a las piernas todo el recorrido.', video: 'https://www.youtube.com/watch?v=op9kVnSso6Q' },
+      { name: 'Zancada con mancuernas', detail: '3×8 por lado', notes: '', tip: 'Paso largo, baja la rodilla trasera cerca del suelo, torso erecto. Empuja con el talón delantero para subir.', video: 'https://www.youtube.com/watch?v=L8fvypPrzzs' },
+      { name: 'Extensión de cadera con cable', detail: '3×12', notes: '', tip: 'De pie frente a la polea baja, anilla en el tobillo, empuja la pierna hacia atrás apretando el glúteo. Controla la vuelta.', video: 'https://www.youtube.com/watch?v=tTm5i9qMVxo' },
     ]},
     B: { name: 'Miércoles – Fuerza máxima superior', exercises: [
-      { name: 'Press banca', detail: '4×6', notes: '' },
-      { name: 'Dominadas', detail: '4×max', notes: '' },
-      { name: 'Press hombros militar', detail: '3×8', notes: '' },
-      { name: 'Farmer carry', detail: '3×30m', notes: '' },
+      { name: 'Press banca', detail: '4×6', notes: '', tip: 'Agarre a 1.5x ancho de hombros, baja la barra al pecho controlado, empuja explosivo. Pies apoyados en el suelo, espalda levemente arqueada.', video: 'https://www.youtube.com/watch?v=vcBig73ojpE' },
+      { name: 'Dominadas', detail: '4×max', notes: '', tip: 'Agarre supino o prono a ancho de hombros. Sube hasta que el mentón supere la barra. Baja completamente para trabajar el rango completo.', video: 'https://www.youtube.com/watch?v=eGo4IYlbE5g' },
+      { name: 'Press hombros militar', detail: '3×8', notes: '', tip: 'De pie, barra a la altura de los hombros, empuja hacia arriba sin arquear la zona lumbar. Activa el core durante todo el movimiento.', video: 'https://www.youtube.com/watch?v=2yjwXTZQDDI' },
+      { name: 'Farmer carry', detail: '3×30m', notes: '', tip: 'Mancuernas pesadas en cada mano, camina erecto con pasos cortos. Activa core y hombros. Para el ciclismo: muy bueno para estabilidad.', video: 'https://www.youtube.com/watch?v=Fkzk_RqlYig' },
     ]},
     C: { name: 'Viernes – Potencia explosiva', exercises: [
-      { name: 'Jump squat (sin peso)', detail: '4×8', notes: 'Potencia máxima en cada rep' },
-      { name: 'Kettlebell swing', detail: '4×15', notes: '' },
-      { name: 'Box step-up explosivo', detail: '3×8 por lado', notes: '' },
-      { name: 'Sprints en bici (1 min ON / 2 min OFF)', detail: '5 repeticiones', notes: 'FC máx en los sprints' },
+      { name: 'Jump squat (sin peso)', detail: '4×8', notes: 'Potencia máxima en cada rep', tip: 'Baja a media sentadilla y salta lo más alto posible. Aterriza suave con rodillas semiflexionadas. Descansa 10s entre reps para mantener potencia máxima.', video: 'https://www.youtube.com/watch?v=CVaEhXotL7M' },
+      { name: 'Kettlebell swing', detail: '4×15', notes: '', tip: 'Bisagra de cadera explosiva, no sentadilla. La kettlebell sube por la fuerza de las caderas, no por los brazos. Aprieta glúteos en la cima.', video: 'https://www.youtube.com/watch?v=YSxHifyI6s8' },
+      { name: 'Box step-up explosivo', detail: '3×8 por lado', notes: '', tip: 'Sube al cajón con potencia, extiende completamente la cadera arriba. El foco está en el impulso desde el talón del pie que sube.', video: 'https://www.youtube.com/watch?v=dQqApCGd5Ss' },
+      { name: 'Sprints en bici (1 min ON / 2 min OFF)', detail: '5 repeticiones', notes: 'FC máx en los sprints', tip: 'En el commuting o rodillo. 1 min a máxima intensidad (>90% FC máx o >400W), 2 min recuperación suave. 5 repeticiones completas.', video: null },
     ]},
     D: { name: 'Sábado – Descanso activo', exercises: [
-      { name: 'Yoga o stretching', detail: '30 min', notes: '' },
-      { name: 'Masaje con pelota', detail: 'pantorrillas y pies', notes: '' },
+      { name: 'Yoga o stretching', detail: '30 min', notes: '', tip: 'Enfócate en cadena posterior: espalda, glúteos, isquiotibiales. Ideal para el ciclista después de semana de pico.', video: 'https://www.youtube.com/watch?v=v7AYKMP6rOE' },
+      { name: 'Masaje con pelota', detail: 'pantorrillas y pies', notes: '', tip: 'Presiona la pelota de tenis o lacrosse contra la pantorrilla o planta del pie. Rueda lentamente buscando puntos de tensión.', video: null },
     ]},
   },
   4: {
     obs: 'Semana de descarga. Reducir volumen 40%. Mantener intensidad. Preparar cuerpo para siguiente ciclo.',
     A: { name: 'Lunes – Descarga tren inferior', exercises: [
-      { name: 'Sentadilla', detail: '3×8 (–40% vol)', notes: 'Peso igual, menos series' },
-      { name: 'Puente de glúteos', detail: '2×15', notes: '' },
-      { name: 'Estiramiento completo', detail: '10 min', notes: '' },
+      { name: 'Sentadilla', detail: '3×8 (–40% vol)', notes: 'Peso igual, menos series', tip: 'Mismo peso que semana 3 pero solo 3 series. El objetivo es mantener el estímulo sin acumular fatiga. Técnica perfecta.', video: 'https://www.youtube.com/watch?v=ultWZbUMPL8' },
+      { name: 'Puente de glúteos', detail: '2×15', notes: '', tip: 'Activa el glúteo antes de entrenar. Pausa 2 segundos arriba apretando. Ideal como activación pre-bici también.', video: 'https://www.youtube.com/watch?v=wPM8icPu6H8' },
+      { name: 'Estiramiento completo', detail: '10 min', notes: '', tip: 'Prioriza cuádriceps, isquiotibiales y flexores de cadera. Son los más cargados en ciclismo y sentadillas.', video: 'https://www.youtube.com/watch?v=sTxC3J3gQEU' },
     ]},
     B: { name: 'Miércoles – Descarga tren superior', exercises: [
-      { name: 'Press banca', detail: '2×8', notes: '' },
-      { name: 'Remo', detail: '2×10', notes: '' },
-      { name: 'Movilidad de hombros', detail: '10 min', notes: '' },
+      { name: 'Press banca', detail: '2×8', notes: '', tip: 'Reducción de volumen, mantener intensidad. 2 series con el peso de semana 3.', video: 'https://www.youtube.com/watch?v=vcBig73ojpE' },
+      { name: 'Remo', detail: '2×10', notes: '', tip: 'Enfócate en la contracción escapular al final del movimiento. Pausa 1s con el codo atrás.', video: 'https://www.youtube.com/watch?v=roCP6wCXPqo' },
+      { name: 'Movilidad de hombros', detail: '10 min', notes: '', tip: 'Círculos de brazos, dislocaciones con palo o banda. Importante para ciclistas que pasan horas en posición aerodinámica.', video: 'https://www.youtube.com/watch?v=n2gvXVJa_oU' },
     ]},
     C: { name: 'Viernes – Mantenimiento', exercises: [
-      { name: 'Peso muerto', detail: '2×8', notes: '' },
-      { name: 'Core completo', detail: '15 min', notes: '' },
+      { name: 'Peso muerto', detail: '2×8', notes: '', tip: 'Solo 2 series, técnica impecable. El cuerpo consolida las adaptaciones de las semanas anteriores durante la descarga.', video: 'https://www.youtube.com/watch?v=op9kVnSso6Q' },
+      { name: 'Core completo', detail: '15 min', notes: '', tip: 'Plancha frontal 3×30s, plancha lateral 2×30s por lado, dead bug 3×10. Enfocarse en calidad de activación.', video: 'https://www.youtube.com/watch?v=pSHjTRCQxIw' },
     ]},
     D: { name: 'Domingo – Salida larga en bici', exercises: [
-      { name: 'Rodada Z2', detail: '3–4 horas', notes: 'FC 145–175 bpm todo el tiempo, ritmo conversacional' },
+      { name: 'Rodada Z2', detail: '3–4 horas', notes: 'FC 145–175 bpm todo el tiempo, ritmo conversacional', tip: 'Zona 2 pura: debes poder hablar frases completas. Si no puedes, vas muy rápido. Este es el entrenamiento más importante de la semana para la base aeróbica brevet.', video: null },
     ]},
   },
 };
@@ -963,8 +1092,21 @@ function saveState() {
     expiresAt: STATE.expiresAt, weightLog: STATE.weightLog,
     brevets: STATE.brevets, gymDone: STATE.gymDone,
     activities_cache: STATE.activities.slice(0, 30).map(a => ({
-      id: a.id, name: a.name, start_local: a.start_local, sport_type: a.sport_type,
-      summary: a.summary, reduced_polyline: a.reduced_polyline,
+      id: a.id, name: a.name, start_local: a.start_local,
+      sport_type: a.sport_type || a.type,
+      summary: a.summary,
+      map: a.map,
+      average_watts: a.average_watts,
+      average_heartrate: a.average_heartrate,
+      max_heartrate: a.max_heartrate,
+      has_heartrate: a.has_heartrate,
+      average_temp: a.average_temp,
+      elev_high: a.elev_high,
+      elev_low: a.elev_low,
+      suffer_score: a.suffer_score,
+      max_speed: a.max_speed,
+      device_name: a.device_name,
+      start_latlng: a.start_latlng,
     })),
   };
   try { localStorage.setItem('sebacycling_v1', JSON.stringify(toSave)); } catch(e) {}
@@ -1025,8 +1167,10 @@ function handleAuthCallback() {
 function updateTopbar() {
   const weight = STATE.weightLog.length > 0
     ? STATE.weightLog[STATE.weightLog.length - 1].w : 98;
-  document.getElementById('top-weight').textContent = weight.toFixed(1);
-  document.getElementById('top-wkg').textContent = (FTP / weight).toFixed(2);
+  const tw = document.getElementById('top-weight');
+  if(tw) tw.textContent = weight.toFixed(1);
+  const twkg = document.getElementById('top-wkg');
+  if(twkg) twkg.textContent = (FTP / weight).toFixed(2);
   const target = new Date('2027-03-15');
   const days = Math.ceil((target - new Date()) / 86400000);
   document.getElementById('top-days').textContent = days > 0 ? days : 0;
@@ -1101,7 +1245,7 @@ async function initRutas() {
   if (STATE.activities.length > 0) {
     loader.style.display = 'none';
     content.style.display = 'block';
-    renderActivities(STATE.activities);
+    renderActivities(STATE.activities.map(normalizeActivity));
   }
 
   try {
@@ -1118,6 +1262,11 @@ async function initRutas() {
     loader.style.display = 'none';
     if (STATE.activities.length === 0) {
       connect.style.display = 'block';
+    } else {
+      // Mostrar cache aunque haya fallado el refresh
+      content.style.display = 'block';
+      renderActivities(STATE.activities.map(normalizeActivity));
+      calcLoad(STATE.activities);
     }
   }
 }
@@ -1172,7 +1321,8 @@ function renderActivities(acts) {
   const card = document.createElement('div');
   card.className = 'card';
   rides.forEach(act => {
-    const d = act.summary;
+    const d = act.summary || {};
+    if (!d.distance && d.distance !== 0) return;
     const km = (d.distance / 1000).toFixed(1);
     const h = Math.floor(d.moving_time / 3600);
     const m = Math.floor((d.moving_time % 3600) / 60);
@@ -1208,11 +1358,11 @@ function showActivityDetail(act) {
   panel.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  const d = act.summary;
-  const km = (d.distance / 1000).toFixed(1);
-  const h = Math.floor(d.moving_time / 3600);
-  const m = Math.floor((d.moving_time % 3600) / 60);
-  const avgKmh = (d.avg_speed * 3.6).toFixed(1);
+  const d = act.summary || {};
+  const km = ((d.distance || 0) / 1000).toFixed(1);
+  const h = Math.floor((d.moving_time || 0) / 3600);
+  const m = Math.floor(((d.moving_time || 0) % 3600) / 60);
+  const avgKmh = ((d.avg_speed || 0) * 3.6).toFixed(1);
   const maxKmh = act.max_speed ? (act.max_speed * 3.6).toFixed(1) : '—';
   const tssEst = estimateTSS(d.moving_time, d.avg_speed * 3.6, d.elevation_gain);
   const avgW = d.average_watts || act.average_watts || estimateWatts(d.avg_speed * 3.6, d.elevation_gain, d.moving_time);
@@ -1393,7 +1543,8 @@ function calcLoad(activities) {
     const t = new Date(a.start_local).getTime();
     const daysAgo = Math.floor((now - t) / day);
     if (daysAgo < 0 || daysAgo > 42) return;
-    const tss = estimateTSS(a.summary.moving_time, a.summary.avg_speed * 3.6, a.summary.elevation_gain);
+    const sum = a.summary || {};
+    const tss = estimateTSS(sum.moving_time || 0, (sum.avg_speed || 0) * 3.6, sum.elevation_gain || 0);
     const key = daysAgo;
     tssMap[key] = (tssMap[key] || 0) + tss;
   });
@@ -1530,16 +1681,26 @@ function renderGym() {
   session.exercises.forEach((ex, i) => {
     const key = `w${STATE.currentWeek}-${STATE.currentSession}-${i}`;
     const done = STATE.gymDone[key];
+    const tipId = 'tip-' + key;
     const el = document.createElement('div');
     el.className = 'exercise-row';
+    const doneStyle = done ? 'text-decoration:line-through;color:var(--text3);' : '';
+    const tipBtn = ex.tip ? `<button onclick="toggleTip('${tipId}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:10px;color:var(--text2);cursor:pointer;">ℹ️ Tip</button>` : '';
+    const vidBtn = ex.video ? `<button onclick="window.open('${ex.video}','_blank')" style="background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);border-radius:5px;padding:4px 8px;font-size:10px;color:#ff4444;cursor:pointer;">▶ Video</button>` : '';
+    const tipDiv = ex.tip ? `<div id="${tipId}" style="display:none;background:var(--surface2);border-left:2px solid var(--orange);border-radius:0 6px 6px 0;padding:8px 10px;margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">${ex.tip}</div>` : '';
+    const checkSvg = done ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : '';
     el.innerHTML = `
-      <div class="exercise-name" style="${done ? 'text-decoration:line-through;color:var(--text3);' : ''}">${ex.name}</div>
-      <div class="exercise-detail">${ex.detail}</div>
-      ${ex.notes ? `<div class="exercise-notes">${ex.notes}</div>` : ''}
-      <label class="exercise-check">
-        <div class="check-box ${done ? 'done' : ''}" id="cb-${key}">
-          ${done ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;">
+          <div class="exercise-name" style="${doneStyle}">${ex.name}</div>
+          <div class="exercise-detail">${ex.detail}</div>
+          ${ex.notes ? '<div class="exercise-notes">' + ex.notes + '</div>' : ''}
         </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;margin-top:2px;">${tipBtn}${vidBtn}</div>
+      </div>
+      ${tipDiv}
+      <label class="exercise-check" style="margin-top:8px;">
+        <div class="check-box ${done ? 'done' : ''}" id="cb-${key}">${checkSvg}</div>
         <span class="check-text">${done ? 'Completado' : 'Marcar como completado'}</span>
       </label>`;
     el.querySelector('.exercise-check').onclick = () => {
@@ -1549,6 +1710,11 @@ function renderGym() {
     };
     exEl.appendChild(el);
   });
+}
+
+function toggleTip(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -1848,6 +2014,320 @@ function showToast(msg) {
 }
 
 window.STRAVA_CLIENT_ID = '253979';
+
+// ═══════════════════════════════════════════════════
+// PERFIL MODULE
+// ═══════════════════════════════════════════════════
+function renderPerfil() {
+  renderPerfilStats();
+  renderWeightChart();
+  renderCompras();
+  renderPerfilWkg();
+}
+
+function renderPerfilStats() {
+  const acts = STATE.activities;
+  if (!acts || acts.length === 0) {
+    document.getElementById('perfil-stats').innerHTML = '<div style="font-size:12px;color:var(--text2);">Conecta Strava para ver tus stats</div>';
+    return;
+  }
+  const rides = acts.filter(a => a.sport_type === 'Ride' || a.sport_type === 'VirtualRide');
+  const totalKm = rides.reduce((s,a) => s + (a.summary ? a.summary.distance : (a.distance||0)), 0) / 1000;
+  const totalTime = rides.reduce((s,a) => s + (a.summary ? a.summary.moving_time : (a.moving_time||0)), 0);
+  const totalElev = rides.reduce((s,a) => s + (a.summary ? a.summary.elevation_gain : (a.total_elevation_gain||0)), 0);
+  const totalKcal = rides.reduce((s,a) => s + (a.summary ? (a.summary.total_calories||0) : (a.calories||0)), 0);
+  const wattsRides = rides.filter(a => a.average_watts);
+  const avgWatts = wattsRides.length > 0 ? wattsRides.reduce((s,a) => s + a.average_watts, 0) / wattsRides.length : 0;
+  const hTotal = Math.floor(totalTime / 3600);
+  const mTotal = Math.floor((totalTime % 3600) / 60);
+  document.getElementById('perfil-stats').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+      <div class="stat-box"><span class="val" style="font-size:18px;">${totalKm.toFixed(0)}</span><span class="lbl">km totales</span></div>
+      <div class="stat-box"><span class="val" style="font-size:18px;">${hTotal}h ${mTotal}m</span><span class="lbl">en bici</span></div>
+      <div class="stat-box"><span class="val" style="font-size:18px;">${Math.round(totalElev)}</span><span class="lbl">m desnivel</span></div>
+      <div class="stat-box"><span class="val" style="font-size:18px;">${Math.round(totalKcal)}</span><span class="lbl">kcal quemadas</span></div>
+      <div class="stat-box"><span class="val" style="font-size:18px;">${rides.length}</span><span class="lbl">actividades</span></div>
+      <div class="stat-box"><span class="val" style="font-size:18px;color:var(--orange);">${avgWatts>0?Math.round(avgWatts)+"W":"—"}</span><span class="lbl">W promedio</span></div>
+    </div>`;
+}
+
+function renderPerfilWkg() {
+  const goal=88, start=98;
+  const current = STATE.weightLog.length>0 ? STATE.weightLog[STATE.weightLog.length-1].w : 98;
+  const wkg = (FTP/current).toFixed(2);
+  const progress = Math.max(0,Math.min(100,((start-current)/(start-goal))*100));
+  const kgToGo = Math.max(0,current-goal).toFixed(1);
+  const el1 = document.getElementById('perfil-wkg-now');
+  const el2 = document.getElementById('perfil-weight-bar');
+  const el3 = document.getElementById('perfil-kg-to-go');
+  if(el1) el1.textContent = wkg;
+  if(el2) el2.style.width = progress+"%";
+  if(el3) el3.textContent = kgToGo+" kg para la meta";
+}
+
+function renderWeightChart() {
+  const chart = document.getElementById('weight-chart');
+  if (!chart) return;
+  if (STATE.weightLog.length < 2) {
+    chart.innerHTML = '<div style="font-size:11px;color:var(--text3);width:100%;text-align:center;padding-top:30px;">Registra al menos 2 pesos para ver el gráfico</div>';
+    return;
+  }
+  const goal=88;
+  const logs = STATE.weightLog.slice(-20);
+  const weights = logs.map(l=>l.w);
+  const minW = Math.min(...weights,goal)-1;
+  const maxW = Math.max(...weights)+1;
+  const range = maxW-minW;
+  chart.innerHTML="";
+  chart.style.cssText="height:80px;display:flex;align-items:flex-end;gap:3px;position:relative;";
+  const goalPct = ((maxW-goal)/range)*100;
+  const goalLine = document.createElement("div");
+  goalLine.style.cssText = "position:absolute;left:0;right:0;top:"+goalPct+"%;border-top:1px dashed var(--green);z-index:2;";
+  chart.appendChild(goalLine);
+  logs.forEach(entry => {
+    const pct=((entry.w-minW)/range)*100;
+    const bar=document.createElement("div");
+    bar.style.cssText="flex:1;border-radius:3px 3px 0 0;min-height:4px;background:"+(entry.w<=goal?"var(--green)":"var(--orange)")+";height:"+pct+"%;position:relative;z-index:1;";
+    chart.appendChild(bar);
+  });
+}
+
+const COMPRAS_SEMANAL=[
+  {cat:"🍌 Frutas",items:["Plátanos (1 racimo)","Manzanas (6 unidades)","Naranjas (6 unidades)","Dátiles (200g)"]},
+  {cat:"🥩 Proteínas",items:["Pechuga de pollo (1kg)","Huevos (12 unidades)","Legumbres variadas (500g)","Yogurt griego (4 unidades)"]},
+  {cat:"🌾 Carbohidratos",items:["Avena (500g)","Arroz integral (1kg)","Pan integral (1 unidad)","Pasta integral (500g)"]},
+  {cat:"🥦 Verduras",items:["Espinaca (200g)","Brócoli (1 unidad)","Zanahorias (500g)","Tomates (500g)"]},
+  {cat:"🥜 Snacks",items:["Maní sin sal (200g)","Mantequilla de maní (1 tarro)","Geles energéticos (4 unidades)","Barritas de avena (6 unidades)"]},
+  {cat:"🥤 Hidratación",items:["Electrolitos en polvo (1 caja)","Agua mineral (6L)"]},
+  {cat:"🫙 Otros",items:["Aceite de oliva","Limones (4)","Café (si se acaba)"]},
+];
+
+function renderCompras() {
+  const list=document.getElementById("compras-list");
+  if(!list)return;
+  list.innerHTML="";
+  COMPRAS_SEMANAL.forEach(cat=>{
+    const catEl=document.createElement("div");
+    catEl.style.cssText="margin-bottom:10px;";
+    catEl.innerHTML="<div style='font-size:11px;font-weight:700;color:var(--text);margin-bottom:5px;'>"+cat.cat+"</div>";
+    cat.items.forEach((item,i)=>{
+      const id="compra-"+cat.cat.length+"-"+i;
+      const saved=localStorage.getItem(id)==="done";
+      const itemEl=document.createElement("div");
+      itemEl.style.cssText="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;";
+      const checkInner=saved?"<svg width='8' height='8' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='3'><polyline points='20 6 9 17 4 12'/></svg>":"";
+      const strikeStyle=saved?"text-decoration:line-through;":"";
+      itemEl.innerHTML="<div style='width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);background:"+(saved?"var(--green)":"var(--surface2)")+";flex-shrink:0;display:flex;align-items:center;justify-content:center;'>"+checkInner+"</div><span style='font-size:12px;color:var(--text2);"+strikeStyle+"'>"+item+"</span>";
+      itemEl.onclick=()=>{
+        const isDone=localStorage.getItem(id)==="done";
+        localStorage.setItem(id,isDone?"":"done");
+        renderCompras();
+      };
+      catEl.appendChild(itemEl);
+    });
+    list.appendChild(catEl);
+  });
+}
+
+function copiarCompras(){
+  const lines=[];
+  COMPRAS_SEMANAL.forEach(cat=>{lines.push(cat.cat);cat.items.forEach(i=>lines.push("  - "+i));lines.push("");});
+  navigator.clipboard.writeText(lines.join("\n")).then(()=>showToast("📋 Lista copiada"));
+}
+
+function desconectarStrava(){
+  if(!confirm("¿Desconectar Strava?"))return;
+  STATE.accessToken=null;STATE.refreshToken=null;STATE.expiresAt=0;STATE.activities=[];
+  saveState();showToast("Strava desconectado");setTimeout(()=>location.reload(),1000);
+}
+
+const _showTabOrig = showTab;
+window.showTab = function(name,btn){
+  _showTabOrig(name,btn);
+  if(name==="perfil") renderPerfil();
+};
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  });
+}
+
 </script>
+<script>
+// ══════════════════════════════════════════════
+// FEATURE: NIGHT MODE AUTOMÁTICO
+// ══════════════════════════════════════════════
+function checkNightMode() {
+  const h = new Date().getHours();
+  const isNight = h >= 21 || h < 6;
+  document.body.classList.toggle('night', isNight);
+}
+checkNightMode();
+setInterval(checkNightMode, 60000);
+
+// ══════════════════════════════════════════════
+// FEATURE: FILTRO COMMUTING
+// ══════════════════════════════════════════════
+let currentFilter = 'all';
+function setFilter(type, btn) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderActivities(STATE.activities);
+}
+
+// Override renderActivities para aplicar filtro
+const _renderActOrig = window.renderActivities || renderActivities;
+function renderActivities(acts) {
+  const list = document.getElementById('rutas-list');
+  const count = document.getElementById('rutas-count');
+  if (!list || !acts) return;
+  const normalized = acts.map(normalizeActivity).filter(Boolean);
+  let rides = normalized.filter(a => a.sport_type === 'Ride' || a.sport_type === 'VirtualRide');
+
+  // Aplicar filtro
+  if (currentFilter === 'commute') {
+    rides = rides.filter(a => a.commute || (a.summary && a.summary.distance < 20000));
+  } else if (currentFilter === 'long') {
+    rides = rides.filter(a => !a.commute && a.summary && a.summary.distance >= 20000 && a.sport_type !== 'VirtualRide');
+  } else if (currentFilter === 'virtual') {
+    rides = rides.filter(a => a.sport_type === 'VirtualRide');
+  }
+
+  count.textContent = rides.length + ' rutas';
+  list.innerHTML = '';
+  if (rides.length === 0) {
+    list.innerHTML = '<div class="card" style="text-align:center;padding:20px;font-size:12px;color:var(--text3);">No hay rutas en esta categoría</div>';
+    return;
+  }
+  const card = document.createElement('div');
+  card.className = 'card';
+  rides.forEach(act => {
+    const d = act.summary || {};
+    const km = ((d.distance || 0) / 1000).toFixed(1);
+    const h = Math.floor((d.moving_time || 0) / 3600);
+    const m = Math.floor(((d.moving_time || 0) % 3600) / 60);
+    const timeStr = h > 0 ? h + 'h ' + m + 'm' : m + 'm';
+    const date = new Date(act.start_local).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+    const isVirtual = act.sport_type === 'VirtualRide';
+    const isCommute = act.commute || (d.distance && d.distance < 20000 && !isVirtual);
+    const icon = isVirtual ? '🖥️' : (isCommute ? '🚴' : (d.elevation_gain > 300 ? '⛰️' : '🛣️'));
+    const el = document.createElement('div');
+    el.className = 'act-item';
+    el.innerHTML = '<div class="act-icon">' + icon + '</div><div class="act-info"><div class="act-name">' + act.name + '</div><div class="act-meta">' + date + ' · ' + (d.elevation_gain || 0) + 'm · ' + (d.total_calories || '—') + ' kcal</div></div><div class="act-stats"><div class="act-dist">' + km + ' km</div><div class="act-time">' + timeStr + '</div></div>';
+    el.onclick = () => showActivityDetail(act);
+    card.appendChild(el);
+  });
+  list.appendChild(card);
+}
+
+// ══════════════════════════════════════════════
+// FEATURE: HRV + SUEÑO
+// ══════════════════════════════════════════════
+let sleepRating = 0;
+function setSleep(val) {
+  sleepRating = val;
+  const labels = ['', 'Muy malo 😴', 'Malo 😐', 'Regular 🙂', 'Bueno 😊', 'Excelente 🌟'];
+  document.getElementById('sleep-label').textContent = labels[val];
+  document.querySelectorAll('.star-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i < val);
+  });
+}
+
+function saveBienestar() {
+  const hrv = parseFloat(document.getElementById('hrv-input').value);
+  if (!hrv && sleepRating === 0) { showToast('Ingresa al menos HRV o calidad de sueño'); return; }
+  const entry = {
+    date: new Date().toISOString().slice(0, 10),
+    hrv: hrv || null,
+    sleep: sleepRating || null,
+  };
+  const log = JSON.parse(localStorage.getItem('bienestar_log') || '[]');
+  // Reemplazar entrada del mismo día
+  const idx = log.findIndex(e => e.date === entry.date);
+  if (idx >= 0) log[idx] = entry; else log.push(entry);
+  log.splice(0, Math.max(0, log.length - 60));
+  localStorage.setItem('bienestar_log', JSON.stringify(log));
+  document.getElementById('hrv-input').value = '';
+  setSleep(0);
+  renderBienestar();
+  showToast('✅ Bienestar registrado');
+}
+
+function renderBienestar() {
+  const log = JSON.parse(localStorage.getItem('bienestar_log') || '[]');
+  const el = document.getElementById('bienestar-history');
+  if (!el) return;
+  if (log.length === 0) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);">Sin registros aún</div>';
+    return;
+  }
+  const recent = log.slice(-7).reverse();
+  const avgHrv = recent.filter(e => e.hrv).reduce((s, e) => s + e.hrv, 0) / recent.filter(e => e.hrv).length;
+  const avgSleep = recent.filter(e => e.sleep).reduce((s, e) => s + e.sleep, 0) / recent.filter(e => e.sleep).length;
+
+  // Semáforo HRV (comparado con promedio)
+  let hrvColor = 'var(--text2)';
+  let hrvSignal = '';
+  if (recent[0] && recent[0].hrv && avgHrv) {
+    const diff = ((recent[0].hrv - avgHrv) / avgHrv) * 100;
+    if (diff >= 5) { hrvColor = 'var(--green)'; hrvSignal = '↑ sobre promedio'; }
+    else if (diff <= -5) { hrvColor = 'var(--red)'; hrvSignal = '↓ bajo promedio — descanso recomendado'; }
+    else { hrvColor = 'var(--yellow)'; hrvSignal = '≈ en promedio'; }
+  }
+
+  el.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'
+    + '<div class="stat-box"><span class="val" style="color:' + hrvColor + ';">' + (recent[0] && recent[0].hrv ? recent[0].hrv + 'ms' : '—') + '</span><span class="lbl">HRV hoy</span></div>'
+    + '<div class="stat-box"><span class="val">' + (avgHrv ? Math.round(avgHrv) + 'ms' : '—') + '</span><span class="lbl">HRV 7d prom</span></div>'
+    + '</div>'
+    + (hrvSignal ? '<div style="font-size:11px;color:' + hrvColor + ';margin-bottom:8px;">' + hrvSignal + '</div>' : '')
+    + '<div style="display:flex;gap:4px;align-items:flex-end;height:40px;margin-bottom:6px;">'
+    + recent.slice().reverse().map(e => {
+        const pct = e.hrv ? Math.min(100, (e.hrv / 100) * 100) : 10;
+        const color = e.hrv && avgHrv ? (e.hrv >= avgHrv * 0.95 ? 'var(--green)' : 'var(--red)') : 'var(--surface3)';
+        return '<div style="flex:1;border-radius:3px 3px 0 0;background:' + color + ';height:' + pct + '%;min-height:3px;" title="' + e.date.slice(5) + ': ' + (e.hrv || '—') + 'ms"></div>';
+      }).join('')
+    + '</div>'
+    + recent.map(e => '<div class="plan-row"><div class="plan-time" style="color:var(--text2);width:65px;">' + e.date.slice(5) + '</div>'
+      + '<div class="plan-detail">' + (e.hrv ? e.hrv + 'ms' : '—') + '</div>'
+      + '<div class="plan-kcal">' + (e.sleep ? '★'.repeat(e.sleep) : '—') + '</div></div>').join('');
+}
+
+// Cargar bienestar al init
+document.addEventListener('DOMContentLoaded', () => {
+  renderBienestar();
+});
+
+// ══════════════════════════════════════════════
+// FEATURE: SWIPE ENTRE TABS
+// ══════════════════════════════════════════════
+(function() {
+  const tabOrder = ['rutas', 'carga', 'gym', 'nutri', 'cal', 'perfil'];
+  let touchStartX = 0, touchStartY = 0;
+
+  document.querySelector('.content').addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.querySelector('.content').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    // Solo swipe horizontal y suficientemente largo
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+    const activeTab = document.querySelector('.tab.active');
+    if (!activeTab) return;
+    const currentId = activeTab.id.replace('tab-', '');
+    const currentIdx = tabOrder.indexOf(currentId);
+    let nextIdx = dx < 0 ? currentIdx + 1 : currentIdx - 1;
+    if (nextIdx < 0 || nextIdx >= tabOrder.length) return;
+    const nextName = tabOrder[nextIdx];
+    const nextBtn = document.querySelector('.nav-btn:nth-child(' + (nextIdx + 1) + ')');
+    if (nextBtn) window.showTab(nextName, nextBtn);
+  }, { passive: true });
+})();
+</script>
+
 </body>
 </html>
